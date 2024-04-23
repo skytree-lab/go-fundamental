@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skytree-labs/go-fundamental/util"
+	"github.com/skytree-lab/go-fundamental/util"
 )
 
 type feelevel int

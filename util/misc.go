@@ -18,7 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/shopspring/decimal"
-	"github.com/skytree-labs/go-fundamental/core"
+	"github.com/skytree-lab/go-fundamental/core"
 )
 
 var IsAlphanumeric = regexp.MustCompile(`^[0-9a-zA-Z]+$`).MatchString

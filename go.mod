@@ -1,4 +1,4 @@
-module github.com/skytree-labs/go-fundamental
+module github.com/skytree-lab/go-fundamental
 
 go 1.19
 
