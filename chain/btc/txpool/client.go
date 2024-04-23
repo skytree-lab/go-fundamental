@@ -6,7 +6,7 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/wire"
-	"github.com/skytree-labs/go-fundamental/chain/btc/btcapi"
+	"github.com/skytree-lab/go-fundamental/chain/btc/btcapi"
 )
 
 type TxpoolClient struct {

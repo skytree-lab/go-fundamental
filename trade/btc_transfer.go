@@ -10,9 +10,9 @@ import (
 	"github.com/btcsuite/btcd/mempool"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
-	"github.com/skytree-labs/go-fundamental/chain/btc/btcapi"
-	"github.com/skytree-labs/go-fundamental/chain/btc/txpool"
-	"github.com/skytree-labs/go-fundamental/util"
+	"github.com/skytree-lab/go-fundamental/chain/btc/btcapi"
+	"github.com/skytree-lab/go-fundamental/chain/btc/txpool"
+	"github.com/skytree-lab/go-fundamental/util"
 )
 
 type tx_type int

@@ -6,7 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/skytree-labs/go-fundamental/util"
+	"github.com/skytree-lab/go-fundamental/util"
 )
 
 type EthAccount struct {
