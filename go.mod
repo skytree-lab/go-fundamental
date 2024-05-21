@@ -13,6 +13,7 @@ require (
 	github.com/ethereum/go-ethereum v1.13.5
 	github.com/go-xorm/xorm v0.7.9
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
+	github.com/gorilla/websocket v1.4.2
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/pkg/errors v0.9.1
@@ -41,7 +42,6 @@ require (
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/holiman/uint256 v1.2.3 // indirect
 	github.com/kkdai/bstream v0.0.0-20161212061736-f391b8402d23 // indirect
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
