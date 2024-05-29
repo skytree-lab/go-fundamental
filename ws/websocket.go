@@ -117,7 +117,7 @@ func (ws *Conn) Write(f func()) {
 	}
 }
 
-func (ws *Conn) StartToHeartbeat(f func() interface{}, interval time.Duration) {
+func (ws *Conn) StartToHeartbeat(f func() string, interval time.Duration) {
 	ws.heartbeatDone = make(chan struct{}, 1)
 	go func() {
 		timer := time.NewTicker(interval)
@@ -128,12 +128,11 @@ func (ws *Conn) StartToHeartbeat(f func() interface{}, interval time.Duration) {
 			case <-timer.C:
 				ws.Write(func() {
 					ping := f()
-					err := ws.SetWriteDeadline(time.Now().Add(time.Second))
+					err := ws.WriteControl(websocket.PingMessage, []byte(ping), time.Now().Add(time.Second))
 					if err != nil {
 						msg := fmt.Sprintf("SetWriteDeadline failed, err = %v", err)
 						util.Logger().Error(msg)
 					}
-					err = ws.WriteJSON(ping)
 					ws.fireEvent(EventHeartBeat, ping, err)
 				})
 			case <-ws.heartbeatDone:
