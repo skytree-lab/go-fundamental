@@ -130,7 +130,7 @@ func (ws *Conn) StartToHeartbeat(f func() string, interval time.Duration) {
 					ping := f()
 					err := ws.WriteControl(websocket.PingMessage, []byte(ping), time.Now().Add(time.Second))
 					if err != nil {
-						msg := fmt.Sprintf("SetWriteDeadline failed, err = %v", err)
+						msg := fmt.Sprintf("WriteControl failed, err = %v", err)
 						util.Logger().Error(msg)
 					}
 					ws.fireEvent(EventHeartBeat, ping, err)
