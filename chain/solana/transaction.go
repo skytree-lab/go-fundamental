@@ -3,189 +3,216 @@ package solana
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
-	bin "github.com/gagliardetto/binary"
-	sol "github.com/gagliardetto/solana-go"
-	"github.com/gagliardetto/solana-go/programs/system"
-	"github.com/gagliardetto/solana-go/programs/tokenregistry"
-	"github.com/gagliardetto/solana-go/rpc"
-	confirm "github.com/gagliardetto/solana-go/rpc/sendAndConfirmTransaction"
-	solws "github.com/gagliardetto/solana-go/rpc/ws"
-	streamingfastSol "github.com/streamingfast/solana-go"
-	associatedtokenaccount "github.com/streamingfast/solana-go/programs/associated-token-account"
-	"github.com/streamingfast/solana-go/programs/token"
-	streamingfastRpc "github.com/streamingfast/solana-go/rpc"
-	streamingfastWs "github.com/streamingfast/solana-go/rpc/ws"
+	"github.com/machinebox/graphql"
+	"github.com/skytree-lab/go-fundamental/util"
+	"github.com/streamingfast/solana-go/rpc"
+	"github.com/ybbus/jsonrpc/v3"
 )
 
-type Balance struct {
-	Parsed  Parsed `json:"parsed"`
-	Program string `json:"program"`
+func GetTransaction(c *rpc.Client, signature string, commitmentType *rpc.CommitmentType) (out *rpc.GetTransactionResponse, err error) {
+	opts := map[string]interface{}{
+		"encoding":                       "json",
+		"maxSupportedTransactionVersion": 0,
+	}
+	if commitmentType != nil {
+		opts["Commitment"] = *commitmentType
+	}
+	params := []interface{}{signature, opts}
+	err = c.DoRequest(&out, "getTransaction", params...)
+	return
 }
-type TokenAmount struct {
+
+type TokenBalance struct {
+	Context *Context `json:"context"`
+	Value   *Value   `json:"value"`
+}
+type Context struct {
+	Slot int `json:"slot"`
+}
+type Value struct {
 	Amount         string  `json:"amount"`
 	Decimals       int     `json:"decimals"`
 	UIAmount       float64 `json:"uiAmount"`
 	UIAmountString string  `json:"uiAmountString"`
 }
-type Info struct {
-	IsNative    bool        `json:"isNative"`
-	Mint        string      `json:"mint"`
-	Owner       string      `json:"owner"`
-	State       string      `json:"state"`
-	TokenAmount TokenAmount `json:"tokenAmount"`
-}
-type Parsed struct {
-	Info Info   `json:"info"`
-	Type string `json:"type"`
-}
 
-func ClaimAirDropFromTestNet(pubKey string) error {
-	acc := sol.MustPublicKeyFromBase58(pubKey)
-	client := rpc.New(rpc.TestNet_RPC)
-	sig, err := client.RequestAirdrop(context.TODO(), acc, sol.LAMPORTS_PER_SOL*1, rpc.CommitmentFinalized)
+func GetTokenAccountBalance(url string, pubkey string) (string, float64, error) {
+	rpcClient := jsonrpc.NewClient(url)
+	resp, err := rpcClient.Call(context.Background(), "getTokenAccountBalance", pubkey)
 	if err != nil {
-		return err
+		util.Logger().Error(fmt.Sprintf("GetTokenAccountBalance err:%+v", err))
+		return "", 0, err
 	}
-	spew.Dump(sig)
-	return nil
-}
-
-func TransferSol(url, wsurl string, keyFrom string, to string, amount uint64) error {
-	accountFrom, err := sol.PrivateKeyFromBase58(keyFrom)
+	var balance *TokenBalance
+	err = resp.GetObject(&balance)
 	if err != nil {
-		return err
-	}
-	accountTo := sol.MustPublicKeyFromBase58(to)
-	rpcClient := rpc.New(url)
-	wsClient, err := solws.Connect(context.Background(), wsurl)
-	if err != nil {
-		return err
+		util.Logger().Error(fmt.Sprintf("GetTokenAccountBalance err:%+v", err))
+		return "", 0, err
 	}
 
-	recent, err := rpcClient.GetRecentBlockhash(context.TODO(), rpc.CommitmentFinalized)
-	if err != nil {
-		return err
+	if balance == nil {
+		util.Logger().Error("balance type err")
+		return "", 0, nil
 	}
 
-	instruction := system.NewTransferInstruction(amount, accountFrom.PublicKey(), accountTo).Build()
-	instructions := []sol.Instruction{
-		instruction,
-	}
-	tx, err := sol.NewTransaction(instructions, recent.Value.Blockhash, sol.TransactionPayer(accountFrom.PublicKey()))
-	if err != nil {
-		return err
-	}
-
-	getter := func(key sol.PublicKey) *sol.PrivateKey {
-		if accountFrom.PublicKey().Equals(key) {
-			return &accountFrom
-		}
-		return nil
-	}
-
-	_, err = tx.Sign(getter)
-	if err != nil {
-		return err
-	}
-
-	sig, err := confirm.SendAndConfirmTransaction(context.TODO(), rpcClient, wsClient, tx)
-	if err != nil {
-		return err
-	}
-	spew.Dump(sig)
-
-	return nil
+	return balance.Value.UIAmountString, balance.Value.UIAmount, nil
 }
 
-func GetMetaData(url, mintAddress string) (*tokenregistry.TokenMeta, error) {
-	client := rpc.New(url)
-	resp, err := client.GetProgramAccountsWithOpts(
-		context.TODO(),
-		sol.TokenMetadataProgramID,
-		&rpc.GetProgramAccountsOpts{
-			Filters: []rpc.RPCFilter{
-				{
-					Memcmp: &rpc.RPCFilterMemcmp{
-						Offset: 32,
-						Bytes:  []byte(mintAddress),
-					},
-				},
-			},
-		},
-	)
+type Mint struct {
+	Mint string `json:"mint"`
+}
+
+type Encoding struct {
+	Encoding string `json:"encoding"`
+}
+
+type GetTokenAccountsByOwnerResponse struct {
+	Context struct {
+		Slot int `json:"slot"`
+	} `json:"context"`
+	Value []struct {
+		Account struct {
+			Data struct {
+				Parsed struct {
+					Info struct {
+						IsNative    bool   `json:"isNative"`
+						Mint        string `json:"mint"`
+						Owner       string `json:"owner"`
+						State       string `json:"state"`
+						TokenAmount struct {
+							Amount         string  `json:"amount"`
+							Decimals       int     `json:"decimals"`
+							UIAmount       float64 `json:"uiAmount"`
+							UIAmountString string  `json:"uiAmountString"`
+						} `json:"tokenAmount"`
+					} `json:"info"`
+					Type string `json:"type"`
+				} `json:"parsed"`
+				Program string `json:"program"`
+				Space   int    `json:"space"`
+			} `json:"data"`
+			Executable bool   `json:"executable"`
+			Lamports   int    `json:"lamports"`
+			Owner      string `json:"owner"`
+		} `json:"account"`
+		Pubkey string `json:"pubkey"`
+	} `json:"value"`
+}
+
+func GetTokenAccountsByOwner(url string, pubkey string, mint string) (string, float64, error) {
+	rpcClient := jsonrpc.NewClient(url)
+	min := &Mint{
+		Mint: mint,
+	}
+
+	encode := &Encoding{
+		Encoding: "jsonParsed",
+	}
+	resp, err := rpcClient.Call(context.Background(), "getTokenAccountsByOwner", pubkey, min, encode)
 	if err != nil {
+		util.Logger().Error(fmt.Sprintf("GetTokenAccountsByOwner err:%+v", err))
+		return "", 0, err
+	}
+
+	var balance *GetTokenAccountsByOwnerResponse
+	err = resp.GetObject(&balance)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("GetTokenAccountsByOwner err:%+v", err))
+		return "", 0, err
+	}
+
+	if balance == nil {
+		util.Logger().Error("balance type err")
+		return "", 0, nil
+	}
+	if len(balance.Value) <= 0 {
+		return "", 0, nil
+	}
+
+	return balance.Value[0].Account.Data.Parsed.Info.TokenAmount.UIAmountString, balance.Value[0].Account.Data.Parsed.Info.TokenAmount.UIAmount, nil
+}
+
+type MetaResponse struct {
+	Success bool    `json:"success"`
+	Message string  `json:"message"`
+	Result  *Result `json:"result"`
+}
+
+type Result struct {
+	Name     string `json:"name"`
+	Symbol   string `json:"symbol"`
+	Decimals int    `json:"decimals"`
+	Address  string `json:"address"`
+}
+
+func GetTokeMeta(url string, mint string, key string) (out *Result, err error) {
+	path := "/sol/v1/token/get_info?network=mainnet-beta&token_address="
+	u := fmt.Sprintf("%s%s%s", url, path, mint)
+	client := util.GetHTTPClient()
+	header := make(map[string]string)
+	header["x-api-key"] = key
+	header["Content-Type"] = " application/json"
+	header["Accept"] = " application/json"
+	resp, err := util.HTTPReq("GET", u, client, nil, header)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("GetTokeMeta err:%+v", err))
 		return nil, err
 	}
-	if resp == nil {
-		return nil, fmt.Errorf("resp empty... cannot find account")
-	}
 
-	for idx, keyedAcct := range resp {
-		acct := keyedAcct.Account
-		var t *tokenregistry.TokenMeta
-		decoder := bin.NewBinDecoder(acct.Data.GetBinary())
-		err := decoder.Decode(&t)
-		if err != nil {
-			continue
-		}
-		msg := fmt.Sprintf("idx:%d mint:%s registration:%s symbol:%s name:%s", idx, t.MintAddress.String(), t.RegistrationAuthority.String(), t.Symbol.String(), t.Name.String())
-		fmt.Println(msg)
-		if t.MintAddress.String() == mintAddress || t.RegistrationAuthority.String() == mintAddress {
-			return t, nil
-		}
-	}
-
-	return nil, errors.New("not found")
-}
-
-func GetBalances(url string, wallet string) ([]*Balance, error) {
-	client := rpc.New(url)
-	pubKey := sol.MustPublicKeyFromBase58(wallet)
-	var balances []*Balance
-	out, err := client.GetTokenAccountsByOwner(
-		context.TODO(),
-		pubKey,
-		&rpc.GetTokenAccountsConfig{
-			ProgramId: sol.TokenProgramID.ToPointer(),
-		},
-		&rpc.GetTokenAccountsOpts{
-			Encoding: sol.EncodingJSONParsed,
-		},
-	)
-
+	var meta MetaResponse
+	err = json.Unmarshal(resp, &meta)
 	if err != nil {
-		return balances, err
+		util.Logger().Error(fmt.Sprintf("GetTokeMeta err:%+v", err))
+		return nil, err
 	}
 
-	for _, rawAccount := range out.Value {
-		data, err := rawAccount.Account.Data.MarshalJSON()
-		if err != nil {
-			return balances, err
-		}
-
-		balance := &Balance{}
-		json.Unmarshal(data, balance)
-		balances = append(balances, balance)
+	if !meta.Success {
+		err := fmt.Errorf("GetTokeMeta err:%s", mint)
+		return nil, err
 	}
 
-	return balances, nil
+	return meta.Result, nil
 }
 
-func TransferToken(url, wsurl string, keyFrom string, to string, amount uint64, mint string) (string, error) {
-	rpcClient := streamingfastRpc.NewClient(url)
-	wsClient := streamingfastWs.NewClient(wsurl, false)
+type RaydiumLiquidityPoolv4 struct {
+	BaseMint   string `json:"baseMint"`
+	BaseVault  string `json:"baseVault"`
+	LpMint     string `json:"lpMint"`
+	QuoteMint  string `json:"quoteMint"`
+	QuoteVault string `json:"quoteVault"`
+}
 
-	sender := &streamingfastSol.Account{
-		PrivateKey: streamingfastSol.MustPrivateKeyFromBase58(keyFrom),
+type PoolInfoResponse struct {
+	RaydiumLiquidityPoolv4 []*RaydiumLiquidityPoolv4 `json:"Raydium_LiquidityPoolv4"`
+}
+
+func GetPoolInfo(url string, key string, tokenA string, tokenB string) (*PoolInfoResponse, error) {
+	path := "/v0/graphql/?api_key="
+	u := fmt.Sprintf("%s%s%s", url, path, key)
+	client := graphql.NewClient(u)
+	q := fmt.Sprintf(`
+	query MyQuery {
+  Raydium_LiquidityPoolv4(
+    where: {
+    baseMint: {_eq: "%s"},
+    quoteMint: {_eq: "%s"}}
+  ) {
+    baseMint
+    baseVault
+    lpMint
+    quoteMint
+    quoteVault
+  }
+}`, tokenA, tokenB)
+	req := graphql.NewRequest(q)
+	var resp PoolInfoResponse
+	err := client.Run(context.Background(), req, &resp)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("graphql run err:%v", err))
+		return nil, err
 	}
 
-	mintPub := streamingfastSol.MustPublicKeyFromBase58(mint)
-	toPub := streamingfastSol.MustPublicKeyFromBase58(to)
-	senderAta := associatedtokenaccount.MustGetAssociatedTokenAddress(mintPub, token.PROGRAM_ID, sender.PublicKey())
-	_, tx, err := token.TransferToken(context.TODO(), rpcClient, wsClient, amount, senderAta, mintPub, toPub, sender)
-	return tx, err
+	return &resp, nil
 }

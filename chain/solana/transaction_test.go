@@ -3,31 +3,48 @@ package solana
 import (
 	"fmt"
 	"testing"
-
-	"github.com/gagliardetto/solana-go/rpc"
 )
 
-func Test_sol_transaction(t *testing.T) {
-	endpoint := rpc.TestNet_RPC
-	wallet := "7HZaCWazgTuuFuajxaaxGYbGnyVKwxvsJKue1W4Nvyro"
-	bs, err := GetBalances(endpoint, wallet)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Println(bs)
+func Test_GetTokenMeta(t *testing.T) {
+	meta, _ := GetTokeMeta("https://api.shyft.to", "4DWaPEVY3E3bkG2APWS13wRKRiQeCpz4G4ZGVuyCYJU9", "")
+	fmt.Println(meta)
 }
 
-func Test_sol_metadata(t *testing.T) {
-	endpoint := rpc.TestNet_RPC
-	mint := "CpMah17kQEL2wqyMKt3mZBdTnZbkbfx4nqmQMFDP5vwp"
-	// mint := "5HzzumbGepQduUNY2exqamvA9XY7iB86kCFPyrYLZtnb"
-	bs, err := GetMetaData(endpoint, mint)
+func Test_GetPoolInfo(t *testing.T) {
+	resp, _ := GetPoolInfo("https://programs.shyft.to", "", "4DWaPEVY3E3bkG2APWS13wRKRiQeCpz4G4ZGVuyCYJU9", "So11111111111111111111111111111111111111112")
+	fmt.Println(resp)
+}
+
+func Test_GettokenAccountBalance(t *testing.T) {
+	url := "https://solana-mainnet.g.alchemy.com/v2/"
+	pubkey := "2ZsNAdu4kzkRPs89P4EZjvRzq1BfdTgBhMrtDkWAUg2X"
+	uiAmount, amount, err := GetTokenAccountBalance(url, pubkey)
 	if err != nil {
 		fmt.Println(err)
-		return
+	} else {
+		fmt.Println(uiAmount)
+		fmt.Println(amount)
 	}
 
-	fmt.Println(bs)
+	pubkey = "7UZ8VjMTYF1yBraryJscXQu8wREyHBomZD223PyrJn36"
+	uiAmount, amount, err = GetTokenAccountBalance(url, pubkey)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(uiAmount)
+		fmt.Println(amount)
+	}
+}
+
+func Test_GettokenAccountByOwner(t *testing.T) {
+	url := "https://solana-mainnet.g.alchemy.com/v2/"
+	pubkey := "J27ma1MPBRvmPJxLqBqQGNECMXDm9L6abFa4duKiPosa"
+	mint := "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk"
+	uiAmount, amount, err := GetTokenAccountsByOwner(url, pubkey, mint)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(uiAmount)
+		fmt.Println(amount)
+	}
 }
