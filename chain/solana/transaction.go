@@ -177,11 +177,20 @@ func GetTokeMeta(url string, mint string, key string) (out *Result, err error) {
 }
 
 type RaydiumLiquidityPoolv4 struct {
-	BaseMint   string `json:"baseMint"`
-	BaseVault  string `json:"baseVault"`
-	LpMint     string `json:"lpMint"`
-	QuoteMint  string `json:"quoteMint"`
-	QuoteVault string `json:"quoteVault"`
+	BaseDecimal     int    `json:"baseDecimal"`
+	BaseMint        string `json:"baseMint"`
+	BaseVault       string `json:"baseVault"`
+	LpMint          string `json:"lpMint"`
+	LpVault         string `json:"lpVault"`
+	MarketId        string `json:"marketId"`
+	MarketProgramId string `json:"marketProgramId"`
+	OpenOrders      string `json:"openOrders"`
+	QuoteDecimal    int    `json:"quoteDecimal"`
+	QuoteMint       string `json:"quoteMint"`
+	QuoteVault      string `json:"quoteVault"`
+	TargetOrders    string `json:"targetOrders"`
+	WithdrawQueue   string `json:"withdrawQueue"`
+	Pubkey          string `json:"pubkey"`
 }
 
 type PoolInfoResponse struct {
@@ -193,17 +202,26 @@ func GetPoolInfo(url string, key string, tokenA string, tokenB string) (*PoolInf
 	u := fmt.Sprintf("%s%s%s", url, path, key)
 	client := graphql.NewClient(u)
 	q := fmt.Sprintf(`
-	query MyQuery {
+query MyQuery {
   Raydium_LiquidityPoolv4(
     where: {
     baseMint: {_eq: "%s"},
     quoteMint: {_eq: "%s"}}
   ) {
+    baseDecimal
     baseMint
     baseVault
     lpMint
+    lpVault
+    marketId
+    marketProgramId
+    openOrders
+    quoteDecimal
     quoteMint
     quoteVault
+    targetOrders
+    withdrawQueue
+    pubkey
   }
 }`, tokenA, tokenB)
 	req := graphql.NewRequest(q)
