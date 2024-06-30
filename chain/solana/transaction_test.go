@@ -54,7 +54,7 @@ func Test_GettokenAccountByOwner(t *testing.T) {
 }
 
 func Test_Transaction(t *testing.T) {
-	url := "https://solana-mainnet.g.alchemy.com/v2/v-8DDF-sKRNirIxSFn9rdszEKw_vu0i5"
+	url := "https://solana-mainnet.g.alchemy.com/v2/"
 	sig := "2PSzrxAmn7fHtRhNXK6RCNFzFR2uvN2CpY2T8tsnLJaFiiBHVuqtmekukr7zqDNCekj9TN5jhU4zq32RiTbgosPZ"
 	// sig := "2ud2sUFqwdmYptgSBNZCvZ514tVSrQRTZnzjEErCVix5eZVUhymZfk7qE9QiZGM9PfiDqS4pH2GcfgzAZV2LJikK"
 	rp := rpc.NewClient(url)
