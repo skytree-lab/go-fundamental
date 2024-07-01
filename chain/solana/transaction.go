@@ -5,40 +5,36 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/gagliardetto/solana-go"
+	"github.com/gagliardetto/solana-go/rpc"
+	confirm "github.com/gagliardetto/solana-go/rpc/sendAndConfirmTransaction"
+	"github.com/gagliardetto/solana-go/rpc/ws"
 	"github.com/machinebox/graphql"
 	"github.com/skytree-lab/go-fundamental/util"
-	"github.com/streamingfast/solana-go"
-	"github.com/streamingfast/solana-go/rpc"
-	"github.com/streamingfast/solana-go/rpc/confirm"
-	"github.com/streamingfast/solana-go/rpc/ws"
 	"github.com/ybbus/jsonrpc/v3"
 )
 
-func GetTransaction(c *rpc.Client, signature string, commitmentType *rpc.CommitmentType) (out *rpc.GetTransactionResponse, err error) {
-	opts := map[string]interface{}{
-		"encoding":                       "json",
-		"maxSupportedTransactionVersion": 0,
-	}
-	if commitmentType != nil {
-		opts["Commitment"] = *commitmentType
-	}
-	params := []interface{}{signature, opts}
-	err = c.DoRequest(&out, "getTransaction", params...)
-	return
-}
+func GetTransaction(url string, signature string) (out *rpc.GetTransactionResult, err error) {
+	rpcClient := jsonrpc.NewClient(url)
 
-type TokenBalance struct {
-	Context *Context `json:"context"`
-	Value   *Value   `json:"value"`
-}
-type Context struct {
-	Slot int `json:"slot"`
-}
-type Value struct {
-	Amount         string  `json:"amount"`
-	Decimals       int     `json:"decimals"`
-	UIAmount       float64 `json:"uiAmount"`
-	UIAmountString string  `json:"uiAmountString"`
+	type Tx struct {
+		Commitment                     string `json:"commitment"`
+		Encoding                       string `json:"encoding"`
+		MaxSupportedTransactionVersion int    `json:"maxSupportedTransactionVersion"`
+	}
+
+	resp, err := rpcClient.Call(context.Background(), "getTransaction", signature, &Tx{Commitment: "confirmed", Encoding: "json", MaxSupportedTransactionVersion: 0})
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("GetTransaction err:%+v", err))
+		return
+	}
+
+	err = resp.GetObject(&out)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("GetTransaction err:%+v", err))
+		return
+	}
+	return
 }
 
 func GetTokenAccountBalance(url string, pubkey string) (string, float64, error) {
@@ -61,47 +57,6 @@ func GetTokenAccountBalance(url string, pubkey string) (string, float64, error) 
 	}
 
 	return balance.Value.UIAmountString, balance.Value.UIAmount, nil
-}
-
-type Mint struct {
-	Mint string `json:"mint"`
-}
-
-type Encoding struct {
-	Encoding string `json:"encoding"`
-}
-
-type GetTokenAccountsByOwnerResponse struct {
-	Context struct {
-		Slot int `json:"slot"`
-	} `json:"context"`
-	Value []struct {
-		Account struct {
-			Data struct {
-				Parsed struct {
-					Info struct {
-						IsNative    bool   `json:"isNative"`
-						Mint        string `json:"mint"`
-						Owner       string `json:"owner"`
-						State       string `json:"state"`
-						TokenAmount struct {
-							Amount         string  `json:"amount"`
-							Decimals       int     `json:"decimals"`
-							UIAmount       float64 `json:"uiAmount"`
-							UIAmountString string  `json:"uiAmountString"`
-						} `json:"tokenAmount"`
-					} `json:"info"`
-					Type string `json:"type"`
-				} `json:"parsed"`
-				Program string `json:"program"`
-				Space   int    `json:"space"`
-			} `json:"data"`
-			Executable bool   `json:"executable"`
-			Lamports   int    `json:"lamports"`
-			Owner      string `json:"owner"`
-		} `json:"account"`
-		Pubkey string `json:"pubkey"`
-	} `json:"value"`
 }
 
 func GetTokenAccountsByOwner(url string, pubkey string, mint string) (string, float64, error) {
@@ -137,19 +92,6 @@ func GetTokenAccountsByOwner(url string, pubkey string, mint string) (string, fl
 	return balance.Value[0].Account.Data.Parsed.Info.TokenAmount.UIAmountString, balance.Value[0].Account.Data.Parsed.Info.TokenAmount.UIAmount, nil
 }
 
-type MetaResponse struct {
-	Success bool    `json:"success"`
-	Message string  `json:"message"`
-	Result  *Result `json:"result"`
-}
-
-type Result struct {
-	Name     string `json:"name"`
-	Symbol   string `json:"symbol"`
-	Decimals int    `json:"decimals"`
-	Address  string `json:"address"`
-}
-
 func GetTokeMeta(url string, mint string, key string) (out *Result, err error) {
 	path := "/sol/v1/token/get_info?network=mainnet-beta&token_address="
 	u := fmt.Sprintf("%s%s%s", url, path, mint)
@@ -177,27 +119,6 @@ func GetTokeMeta(url string, mint string, key string) (out *Result, err error) {
 	}
 
 	return meta.Result, nil
-}
-
-type RaydiumLiquidityPoolv4 struct {
-	BaseDecimal     int    `json:"baseDecimal"`
-	BaseMint        string `json:"baseMint"`
-	BaseVault       string `json:"baseVault"`
-	LpMint          string `json:"lpMint"`
-	LpVault         string `json:"lpVault"`
-	MarketId        string `json:"marketId"`
-	MarketProgramId string `json:"marketProgramId"`
-	OpenOrders      string `json:"openOrders"`
-	QuoteDecimal    int    `json:"quoteDecimal"`
-	QuoteMint       string `json:"quoteMint"`
-	QuoteVault      string `json:"quoteVault"`
-	TargetOrders    string `json:"targetOrders"`
-	WithdrawQueue   string `json:"withdrawQueue"`
-	Pubkey          string `json:"pubkey"`
-}
-
-type PoolInfoResponse struct {
-	RaydiumLiquidityPoolv4 []*RaydiumLiquidityPoolv4 `json:"Raydium_LiquidityPoolv4"`
 }
 
 func GetPoolInfo(url string, key string, tokenA string, tokenB string) (*PoolInfoResponse, error) {
@@ -239,7 +160,7 @@ query MyQuery {
 }
 
 func BuildTransacion(ctx context.Context, clientRPC *rpc.Client, signers []solana.PrivateKey, instrs ...solana.Instruction) (*solana.Transaction, error) {
-	recent, err := clientRPC.GetLatestBlockhash(rpc.CommitmentFinalized)
+	recent, err := clientRPC.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
 	if err != nil {
 		return nil, err
 	}
@@ -275,23 +196,23 @@ func ExecuteInstructions(
 	signers []solana.PrivateKey,
 	instrs ...solana.Instruction,
 ) (string, error) {
-
 	tx, err := BuildTransacion(ctx, clientRPC, signers, instrs...)
 	if err != nil {
 		return "", err
 	}
 
-	sig, err := clientRPC.SendTransaction(
+	sig, err := clientRPC.SendTransactionWithOpts(
+		ctx,
 		tx,
-		&rpc.SendTransactionOptions{
+		rpc.TransactionOpts{
 			SkipPreflight:       false,
 			PreflightCommitment: rpc.CommitmentFinalized,
-		})
+		},
+	)
 	if err != nil {
 		return "", err
 	}
-
-	return sig, nil
+	return sig.String(), nil
 }
 
 func ExecuteInstructionsAndWaitConfirm(
@@ -301,14 +222,12 @@ func ExecuteInstructionsAndWaitConfirm(
 	signers []solana.PrivateKey,
 	instrs ...solana.Instruction,
 ) (string, error) {
-
 	tx, err := BuildTransacion(ctx, clientRPC, signers, instrs...)
 	if err != nil {
 		return "", err
 	}
 
-	clientWS := ws.NewClient(RPCWs, false)
-	err = clientWS.Dial(context.Background())
+	clientWS, err := ws.Connect(ctx, RPCWs)
 	if err != nil {
 		return "", err
 	}
@@ -323,5 +242,5 @@ func ExecuteInstructionsAndWaitConfirm(
 		return "", err
 	}
 
-	return sig, nil
+	return sig.String(), nil
 }

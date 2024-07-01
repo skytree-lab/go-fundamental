@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-
-	"github.com/mr-tron/base58"
-	"github.com/streamingfast/solana-go/rpc"
 )
 
 func Test_GetTokenMeta(t *testing.T) {
@@ -57,18 +54,23 @@ func Test_Transaction(t *testing.T) {
 	url := "https://solana-mainnet.g.alchemy.com/v2/"
 	sig := "2PSzrxAmn7fHtRhNXK6RCNFzFR2uvN2CpY2T8tsnLJaFiiBHVuqtmekukr7zqDNCekj9TN5jhU4zq32RiTbgosPZ"
 	// sig := "2ud2sUFqwdmYptgSBNZCvZ514tVSrQRTZnzjEErCVix5eZVUhymZfk7qE9QiZGM9PfiDqS4pH2GcfgzAZV2LJikK"
-	rp := rpc.NewClient(url)
-	conf := rpc.CommitmentConfirmed
-	out, err := GetTransaction(rp, sig, &conf)
+	out, err := GetTransaction(url, sig)
 	if err != nil {
 		fmt.Println(err)
 	}
-	for _, instruction := range out.Transaction.Message.Instructions {
-		datas, err := base58.Decode(instruction.Data)
-		if err != nil {
-			continue
-		}
+	if out == nil || out.Transaction == nil {
+		fmt.Println("out GetTransaction nil ")
+		return
+	}
 
+	tx, err := out.Transaction.GetTransaction()
+	if err != nil {
+		fmt.Printf("out GetTransaction err:%v\r\n", err)
+		return
+	}
+
+	for _, instruction := range tx.Message.Instructions {
+		datas := []byte(instruction.Data)
 		if len(datas) < 8 {
 			continue
 		}
@@ -87,8 +89,8 @@ func Test_Transaction(t *testing.T) {
 
 		sourceIdx := instruction.Accounts[0]
 		destIdx := instruction.Accounts[1]
-		fmt.Println(out.Transaction.Message.AccountKeys[sourceIdx].String())
-		fmt.Println(out.Transaction.Message.AccountKeys[destIdx].String())
+		fmt.Println(tx.Message.AccountKeys[sourceIdx].String())
+		fmt.Println(tx.Message.AccountKeys[destIdx].String())
 
 		var amountBuf []byte
 		for i := 7; i >= 4; i-- {
