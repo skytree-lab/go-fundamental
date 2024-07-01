@@ -7,7 +7,10 @@ import (
 
 	"github.com/machinebox/graphql"
 	"github.com/skytree-lab/go-fundamental/util"
+	"github.com/streamingfast/solana-go"
 	"github.com/streamingfast/solana-go/rpc"
+	"github.com/streamingfast/solana-go/rpc/confirm"
+	"github.com/streamingfast/solana-go/rpc/ws"
 	"github.com/ybbus/jsonrpc/v3"
 )
 
@@ -233,4 +236,92 @@ query MyQuery {
 	}
 
 	return &resp, nil
+}
+
+func BuildTransacion(ctx context.Context, clientRPC *rpc.Client, signers []solana.PrivateKey, instrs ...solana.Instruction) (*solana.Transaction, error) {
+	recent, err := clientRPC.GetLatestBlockhash(rpc.CommitmentFinalized)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := solana.NewTransaction(
+		instrs,
+		recent.Value.Blockhash,
+		solana.TransactionPayer(signers[0].PublicKey()),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = tx.Sign(
+		func(key solana.PublicKey) *solana.PrivateKey {
+			for _, payer := range signers {
+				if payer.PublicKey().Equals(key) {
+					return &payer
+				}
+			}
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+func ExecuteInstructions(
+	ctx context.Context,
+	clientRPC *rpc.Client,
+	signers []solana.PrivateKey,
+	instrs ...solana.Instruction,
+) (string, error) {
+
+	tx, err := BuildTransacion(ctx, clientRPC, signers, instrs...)
+	if err != nil {
+		return "", err
+	}
+
+	sig, err := clientRPC.SendTransaction(
+		tx,
+		&rpc.SendTransactionOptions{
+			SkipPreflight:       false,
+			PreflightCommitment: rpc.CommitmentFinalized,
+		})
+	if err != nil {
+		return "", err
+	}
+
+	return sig, nil
+}
+
+func ExecuteInstructionsAndWaitConfirm(
+	ctx context.Context,
+	clientRPC *rpc.Client,
+	RPCWs string,
+	signers []solana.PrivateKey,
+	instrs ...solana.Instruction,
+) (string, error) {
+
+	tx, err := BuildTransacion(ctx, clientRPC, signers, instrs...)
+	if err != nil {
+		return "", err
+	}
+
+	clientWS := ws.NewClient(RPCWs, false)
+	err = clientWS.Dial(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	sig, err := confirm.SendAndConfirmTransaction(
+		ctx,
+		clientRPC,
+		clientWS,
+		tx,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	return sig, nil
 }
