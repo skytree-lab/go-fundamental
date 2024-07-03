@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
@@ -38,7 +37,7 @@ func GetTransaction(url string, signature string) (out *rpc.GetTransactionResult
 	return
 }
 
-func GetBalance(url string, pubkey string) (float64, error) {
+func GetBalance(url string, pubkey string) (uint64, error) {
 	rpcClient := jsonrpc.NewClient(url)
 	resp, err := rpcClient.Call(context.Background(), "getBalance", pubkey)
 	if err != nil {
@@ -58,8 +57,7 @@ func GetBalance(url string, pubkey string) (float64, error) {
 		return 0, nil
 	}
 
-	b := float64(balance.Value) / math.Pow10(9)
-	return b, nil
+	return balance.Value, nil
 }
 
 func GetTokenAccountBalance(url string, pubkey string) (string, float64, error) {
