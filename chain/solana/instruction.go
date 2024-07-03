@@ -11,10 +11,16 @@ import (
 	"github.com/skytree-lab/go-fundamental/util"
 )
 
-func ParseTransferSOLInstructionParam(out *rpc.GetTransactionResult) (params []*TransferSOLInstructionParam, err error) {
-	if out == nil || out.Transaction == nil {
+func ParseTransferSOLInstructionParam(out *rpc.GetTransactionResult) (params []*TransferSOLInstructionParam, succeed bool, err error) {
+	if out == nil || out.Transaction == nil || out.Meta == nil {
 		util.Logger().Error("out GetTransaction nil")
 		return
+	}
+
+	if out.Meta.Err == nil {
+		succeed = true
+	} else {
+		succeed = false
 	}
 
 	tx, err := out.Transaction.GetTransaction()
@@ -57,10 +63,16 @@ func ParseTransferSOLInstructionParam(out *rpc.GetTransactionResult) (params []*
 	return
 }
 
-func ParseRaydiumSwapInstructionParam(out *rpc.GetTransactionResult) (param *RaydiumSwapInstructionParam, err error) {
-	if out == nil || out.Transaction == nil {
+func ParseRaydiumSwapInstructionParam(out *rpc.GetTransactionResult) (param *RaydiumSwapInstructionParam, succeed bool, err error) {
+	if out == nil || out.Transaction == nil || out.Meta == nil {
 		util.Logger().Error("out GetTransaction nil")
 		return
+	}
+
+	if out.Meta.Err == nil {
+		succeed = true
+	} else {
+		succeed = false
 	}
 
 	tx, err := out.Transaction.GetTransaction()

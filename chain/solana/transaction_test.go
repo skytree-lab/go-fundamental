@@ -68,12 +68,13 @@ func Test_SwapTransaction(t *testing.T) {
 		fmt.Println(err)
 	}
 
-	param, err := ParseRaydiumSwapInstructionParam(out)
+	param, succeed, err := ParseRaydiumSwapInstructionParam(out)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
+	fmt.Println(succeed)
 	fmt.Println(param)
 }
 
@@ -88,11 +89,12 @@ func Test_TransferTransaction(t *testing.T) {
 		return
 	}
 
-	params, err := ParseTransferSOLInstructionParam(out)
+	params, succeed, err := ParseTransferSOLInstructionParam(out)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
+	fmt.Println(succeed)
 	fmt.Println(params)
 }
