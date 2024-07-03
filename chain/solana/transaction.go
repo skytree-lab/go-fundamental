@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
@@ -37,6 +38,30 @@ func GetTransaction(url string, signature string) (out *rpc.GetTransactionResult
 	return
 }
 
+func GetBalance(url string, pubkey string) (float64, error) {
+	rpcClient := jsonrpc.NewClient(url)
+	resp, err := rpcClient.Call(context.Background(), "getBalance", pubkey)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("getBalance err:%+v", err))
+		return 0, err
+	}
+
+	var balance *GetBalanceResponse
+	err = resp.GetObject(&balance)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("GetBalance err:%+v", err))
+		return 0, err
+	}
+
+	if balance == nil {
+		util.Logger().Error("balance type err")
+		return 0, nil
+	}
+
+	b := float64(balance.Value) / math.Pow10(9)
+	return b, nil
+}
+
 func GetTokenAccountBalance(url string, pubkey string) (string, float64, error) {
 	rpcClient := jsonrpc.NewClient(url)
 	resp, err := rpcClient.Call(context.Background(), "getTokenAccountBalance", pubkey)
@@ -59,37 +84,47 @@ func GetTokenAccountBalance(url string, pubkey string) (string, float64, error) 
 	return balance.Value.UIAmountString, balance.Value.UIAmount, nil
 }
 
-func GetTokenAccountsByOwner(url string, pubkey string, mint string) (string, float64, error) {
+func GetTokenAccountsByOwner(url string, pubkey string, mint string, programid string) (*GetTokenAccountsByOwnerResponse, error) {
 	rpcClient := jsonrpc.NewClient(url)
 	min := &Mint{
 		Mint: mint,
 	}
-
+	pro := &Program{
+		ProgramId: programid,
+	}
 	encode := &Encoding{
 		Encoding: "jsonParsed",
 	}
-	resp, err := rpcClient.Call(context.Background(), "getTokenAccountsByOwner", pubkey, min, encode)
+	var resp *jsonrpc.RPCResponse
+	var err error
+	if mint != "" {
+		resp, err = rpcClient.Call(context.Background(), "getTokenAccountsByOwner", pubkey, min, encode)
+	} else if programid != "" {
+		resp, err = rpcClient.Call(context.Background(), "getTokenAccountsByOwner", pubkey, pro, encode)
+	}
+
 	if err != nil {
 		util.Logger().Error(fmt.Sprintf("GetTokenAccountsByOwner err:%+v", err))
-		return "", 0, err
+		return nil, err
 	}
 
-	var balance *GetTokenAccountsByOwnerResponse
-	err = resp.GetObject(&balance)
+	var response *GetTokenAccountsByOwnerResponse
+	err = resp.GetObject(&response)
 	if err != nil {
 		util.Logger().Error(fmt.Sprintf("GetTokenAccountsByOwner err:%+v", err))
-		return "", 0, err
+		return nil, err
 	}
 
-	if balance == nil {
-		util.Logger().Error("balance type err")
-		return "", 0, nil
-	}
-	if len(balance.Value) <= 0 {
-		return "", 0, nil
+	if response == nil {
+		util.Logger().Error("response type err")
+		return nil, nil
 	}
 
-	return balance.Value[0].Account.Data.Parsed.Info.TokenAmount.UIAmountString, balance.Value[0].Account.Data.Parsed.Info.TokenAmount.UIAmount, nil
+	if len(response.Value) <= 0 {
+		return nil, nil
+	}
+
+	return response, nil
 }
 
 func GetTokeMeta(url string, mint string, key string) (out *Result, err error) {

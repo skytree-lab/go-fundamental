@@ -1,5 +1,29 @@
 package solana
 
+import "github.com/gagliardetto/solana-go"
+
+var (
+	RaydiumLiquidityPoolv4ProgramID = solana.MustPublicKeyFromBase58("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")
+)
+
+type TransferSOLInstructionParam struct {
+	Source      string
+	Destination string
+	Amount      uint64
+}
+
+type RaydiumSwapInstructionParam struct {
+	SwapIn  *RaydiumSwapInnerInstructionData
+	SwapOut *RaydiumSwapInnerInstructionData
+}
+
+type RaydiumSwapInnerInstructionData struct {
+	Source       string
+	Destionation string
+	Owner        string
+	Amount       uint64
+}
+
 type RaydiumLiquidityPoolv4 struct {
 	BaseDecimal     int    `json:"baseDecimal"`
 	BaseMint        string `json:"baseMint"`
@@ -38,8 +62,20 @@ type Mint struct {
 	Mint string `json:"mint"`
 }
 
+type Program struct {
+	ProgramId string `json:"programId"`
+}
+
 type Encoding struct {
 	Encoding string `json:"encoding"`
+}
+
+type GetBalanceResponse struct {
+	Context struct {
+		APIVersion string `json:"apiVersion"`
+		Slot       int    `json:"slot"`
+	} `json:"context"`
+	Value uint64 `json:"value"`
 }
 
 type GetTokenAccountsByOwnerResponse struct {
