@@ -3,6 +3,8 @@ package solana
 import (
 	"fmt"
 	"testing"
+
+	"github.com/gagliardetto/solana-go"
 )
 
 func Test_GetTokenMeta(t *testing.T) {
@@ -97,4 +99,20 @@ func Test_TransferTransaction(t *testing.T) {
 
 	fmt.Println(succeed)
 	fmt.Println(params)
+}
+
+func Test_TransferSOL(t *testing.T) {
+	url := "https://api.testnet.solana.com"
+	wsurl := "wss://api.testnet.solana.com"
+	from := ""
+	to := "6huu25nWzFtBWPMQmWRzKLD4Wtfq11SSjZTU6oitLqdz"
+
+	acc := solana.MustPrivateKeyFromBase58(from)
+	fmt.Println(acc.PublicKey().String())
+	sig, err := TransferSOL(url, wsurl, from, to, 100000000)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(sig)
+	}
 }

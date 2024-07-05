@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/gagliardetto/solana-go"
+	"github.com/gagliardetto/solana-go/programs/system"
 	"github.com/gagliardetto/solana-go/rpc"
 	confirm "github.com/gagliardetto/solana-go/rpc/sendAndConfirmTransaction"
 	"github.com/gagliardetto/solana-go/rpc/ws"
@@ -276,4 +277,48 @@ func ExecuteInstructionsAndWaitConfirm(
 	}
 
 	return sig.String(), nil
+}
+
+func TransferSOL(url string, wsUrl string, fromKey string, to string, amount uint64) (sig string, err error) {
+	rpcClient := rpc.New(url)
+	wsClient, err := ws.Connect(context.Background(), wsUrl)
+	if err != nil {
+		return
+	}
+
+	recent, err := rpcClient.GetRecentBlockhash(context.TODO(), rpc.CommitmentFinalized)
+	if err != nil {
+		return
+	}
+
+	accFrom := solana.MustPrivateKeyFromBase58(fromKey)
+	accTo := solana.MustPublicKeyFromBase58(to)
+	tx, err := solana.NewTransaction(
+		[]solana.Instruction{
+			system.NewTransferInstruction(amount, accFrom.PublicKey(), accTo).Build(),
+		},
+		recent.Value.Blockhash,
+		solana.TransactionPayer(accFrom.PublicKey()),
+	)
+	if err != nil {
+		return
+	}
+
+	_, err = tx.Sign(func(key solana.PublicKey) *solana.PrivateKey {
+		if accFrom.PublicKey().Equals(key) {
+			return &accFrom
+		}
+		return nil
+	})
+	if err != nil {
+		return
+	}
+
+	// Send transaction, and wait for confirmation:
+	signature, err := confirm.SendAndConfirmTransaction(context.TODO(), rpcClient, wsClient, tx)
+	if err != nil {
+		return
+	}
+	sig = signature.String()
+	return
 }
