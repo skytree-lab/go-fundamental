@@ -3,10 +3,14 @@ package solana
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
+	bin "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
+	associatedtokenaccount "github.com/gagliardetto/solana-go/programs/associated-token-account"
 	"github.com/gagliardetto/solana-go/programs/system"
+	"github.com/gagliardetto/solana-go/programs/token"
 	"github.com/gagliardetto/solana-go/rpc"
 	confirm "github.com/gagliardetto/solana-go/rpc/sendAndConfirmTransaction"
 	"github.com/gagliardetto/solana-go/rpc/ws"
@@ -316,6 +320,163 @@ func TransferSOL(url string, wsUrl string, fromKey string, to string, amount uin
 
 	// Send transaction, and wait for confirmation:
 	signature, err := confirm.SendAndConfirmTransaction(context.TODO(), rpcClient, wsClient, tx)
+	if err != nil {
+		return
+	}
+	sig = signature.String()
+	return
+}
+
+func CheckAccount(url string, payer solana.PublicKey, publicKey solana.PublicKey, fromTokenAddr, toTokenAddr string) (map[string]solana.PublicKey, []solana.Instruction, error) {
+	var mints []solana.PublicKey
+	mints = append(mints, solana.MustPublicKeyFromBase58(fromTokenAddr))
+	if fromTokenAddr != toTokenAddr {
+		mints = append(mints, solana.MustPublicKeyFromBase58(toTokenAddr))
+	}
+
+	existingAccounts, missingAccounts, err := GetTokenAccountsFromMints(context.Background(), url, publicKey, mints...)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("GetTokenAccountsFromMints err:%v", err))
+		return nil, nil, err
+	}
+
+	instrs := []solana.Instruction{}
+	if len(missingAccounts) != 0 {
+		for mint := range missingAccounts {
+			if mint == NativeSOL {
+				continue
+			}
+			inst, err := associatedtokenaccount.NewCreateInstruction(
+				payer,
+				publicKey,
+				solana.MustPublicKeyFromBase58(mint),
+			).ValidateAndBuild()
+			if err != nil {
+				util.Logger().Error(fmt.Sprintf("NewCreateInstruction err:%v", err))
+				return nil, nil, err
+			}
+			instrs = append(instrs, inst)
+		}
+		for k, v := range missingAccounts {
+			existingAccounts[k] = v
+		}
+	}
+	return existingAccounts, instrs, nil
+}
+
+func GetTokenAccountsFromMints(ctx context.Context, url string, owner solana.PublicKey,
+	mints ...solana.PublicKey) (map[string]solana.PublicKey, map[string]solana.PublicKey, error) {
+
+	duplicates := map[string]bool{}
+	tokenAccounts := []solana.PublicKey{}
+	tokenAccountInfos := []TokenAccountInfo{}
+	for _, m := range mints {
+		if ok := duplicates[m.String()]; ok {
+			continue
+		}
+		duplicates[m.String()] = true
+		a, _, err := solana.FindAssociatedTokenAddress(owner, m)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("FindAssociatedTokenAddress err:%v", err))
+			return nil, nil, err
+		}
+		// Use owner address for NativeSOL mint
+		if m.String() == NativeSOL {
+			a = owner
+		}
+		tokenAccounts = append(tokenAccounts, a)
+		tokenAccountInfos = append(tokenAccountInfos, TokenAccountInfo{
+			Mint:    m,
+			Account: a,
+		})
+	}
+	clientRPC := rpc.New(url)
+	res, err := clientRPC.GetMultipleAccounts(ctx, tokenAccounts...)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("GetMultipleAccounts err:%v", err))
+		return nil, nil, err
+	}
+
+	missingAccounts := map[string]solana.PublicKey{}
+	existingAccounts := map[string]solana.PublicKey{}
+	for i, a := range res.Value {
+		tai := tokenAccountInfos[i]
+		if a == nil {
+			missingAccounts[tai.Mint.String()] = tai.Account
+			continue
+		}
+		if tai.Mint.String() == NativeSOL {
+			existingAccounts[tai.Mint.String()] = owner
+			continue
+		}
+		var ta token.Account
+		err = bin.NewBinDecoder(a.Data.GetBinary()).Decode(&ta)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("NewBinDecoder err:%v", err))
+			return nil, nil, err
+		}
+		existingAccounts[tai.Mint.String()] = tai.Account
+	}
+
+	return existingAccounts, missingAccounts, nil
+}
+
+func TransferToken(ctx context.Context, url string, wsUrl string, amount uint64, senderSPLTokenAccount, mint, recipient solana.PublicKey, sender *solana.PrivateKey) (sig string, err error) {
+	rpcClient := rpc.New(url)
+	wsClient, err := ws.Connect(context.Background(), wsUrl)
+	if err != nil {
+		return
+	}
+
+	existingAccounts, instrs, err := CheckAccount(url, sender.PublicKey(), recipient, mint.String(), mint.String())
+	if err != nil {
+		return
+	}
+
+	var instructions []solana.Instruction
+	instructions = append(instructions, instrs...)
+
+	recipientSPLTokenAccount, ok := existingAccounts[mint.String()]
+	if !ok {
+		err = errors.New("invalid account")
+		return
+	}
+
+	var signaturers []solana.PublicKey
+	signaturers = append(signaturers, sender.PublicKey())
+
+	transfer, err := token.NewTransferInstruction(amount,
+		senderSPLTokenAccount,
+		recipientSPLTokenAccount,
+		sender.PublicKey(),
+		signaturers).ValidateAndBuild()
+	if err != nil {
+		return
+	}
+
+	instructions = append(instructions, transfer)
+	recent, err := rpcClient.GetRecentBlockhash(context.TODO(), rpc.CommitmentFinalized)
+	if err != nil {
+		return
+	}
+	trx, err := solana.NewTransaction(instructions,
+		recent.Value.Blockhash,
+		solana.TransactionPayer(sender.PublicKey()))
+	if err != nil {
+		return
+	}
+
+	_, err = trx.Sign(func(key solana.PublicKey) *solana.PrivateKey {
+		if key == sender.PublicKey() {
+			return sender
+		}
+		return nil
+	})
+	if err != nil {
+		return
+	}
+
+	signature, err := confirm.SendAndConfirmTransaction(ctx, rpcClient, wsClient, trx)
 	if err != nil {
 		return
 	}
