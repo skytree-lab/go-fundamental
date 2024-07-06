@@ -1,6 +1,7 @@
 package solana
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -102,8 +103,8 @@ func Test_TransferTransaction(t *testing.T) {
 }
 
 func Test_TransferSOL(t *testing.T) {
-	url := "https://api.testnet.solana.com"
-	wsurl := "wss://api.testnet.solana.com"
+	url := "https://solana-mainnet.g.alchemy.com/v2/"
+	wsurl := "wss://api.mainnet-beta.solana.com"
 	from := ""
 	to := "6huu25nWzFtBWPMQmWRzKLD4Wtfq11SSjZTU6oitLqdz"
 
@@ -115,4 +116,25 @@ func Test_TransferSOL(t *testing.T) {
 	} else {
 		fmt.Println(sig)
 	}
+}
+
+func Test_TransferSpl(t *testing.T) {
+	url := "https://api.mainnet-beta.solana.com"
+	wsurl := "wss://api.mainnet-beta.solana.com"
+	to := solana.MustPublicKeyFromBase58("J2YwmwqMfCE4LW1T4Xy5R9owBn1t2yhaMQ7TPrS2aZau")
+	sender := solana.MustPrivateKeyFromBase58("")
+	mint := solana.MustPublicKeyFromBase58("4G86CMxGsMdLETrYnavMFKPhQzKTvDBYGMRAdVtr72nu")
+	serderSpl, _, err := solana.FindAssociatedTokenAddress(sender.PublicKey(), mint)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(serderSpl)
+
+	sig, err := TransferToken(context.Background(), url, wsurl, 100000000, serderSpl, mint, to, &sender)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(sig)
 }

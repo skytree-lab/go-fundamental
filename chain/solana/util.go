@@ -4,7 +4,13 @@ import "github.com/gagliardetto/solana-go"
 
 var (
 	RaydiumLiquidityPoolv4ProgramID = solana.MustPublicKeyFromBase58("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")
+	NativeSOL                       = "11111111111111111111111111111111"
 )
+
+type TokenAccountInfo struct {
+	Mint    solana.PublicKey
+	Account solana.PublicKey
+}
 
 type TransferSOLInstructionParam struct {
 	Source      string
