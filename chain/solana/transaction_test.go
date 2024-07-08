@@ -21,7 +21,7 @@ func Test_GetPoolInfo(t *testing.T) {
 func Test_GettokenAccountBalance(t *testing.T) {
 	url := "https://solana-mainnet.g.alchemy.com/v2/alch-demo"
 	pubkey := "2ZsNAdu4kzkRPs89P4EZjvRzq1BfdTgBhMrtDkWAUg2X"
-	uiAmount, amount, err := GetTokenAccountBalance(url, pubkey)
+	uiAmount, amount, err := GetTokenAccountBalance([]string{url}, pubkey)
 	if err != nil {
 		fmt.Println(err)
 	} else {
@@ -30,7 +30,7 @@ func Test_GettokenAccountBalance(t *testing.T) {
 	}
 
 	pubkey = "7UZ8VjMTYF1yBraryJscXQu8wREyHBomZD223PyrJn36"
-	uiAmount, amount, err = GetTokenAccountBalance(url, pubkey)
+	uiAmount, amount, err = GetTokenAccountBalance([]string{url}, pubkey)
 	if err != nil {
 		fmt.Println(err)
 	} else {
@@ -42,7 +42,7 @@ func Test_GettokenAccountBalance(t *testing.T) {
 func Test_GetBalance(t *testing.T) {
 	url := "https://solana-mainnet.g.alchemy.com/v2/alch-demo"
 	pubkey := "J27ma1MPBRvmPJxLqBqQGNECMXDm9L6abFa4duKiPosa"
-	b, err := GetBalance(url, pubkey)
+	b, err := GetBalance([]string{url}, pubkey)
 	if err != nil {
 		fmt.Println(err)
 	} else {
@@ -54,7 +54,7 @@ func Test_GettokenAccountByOwner(t *testing.T) {
 	url := "https://solana-mainnet.g.alchemy.com/v2/alch-demo"
 	pubkey := "J27ma1MPBRvmPJxLqBqQGNECMXDm9L6abFa4duKiPosa"
 	mint := "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk"
-	resp, err := GetTokenAccountsByOwner(url, pubkey, mint, "")
+	resp, err := GetTokenAccountsByOwner([]string{url}, pubkey, mint, "")
 	if err != nil {
 		fmt.Println(err)
 	} else {
@@ -66,7 +66,7 @@ func Test_GettokenAccountByOwner(t *testing.T) {
 func Test_SwapTransaction(t *testing.T) {
 	url := "https://solana-mainnet.g.alchemy.com/v2/alch-demo"
 	sig := "5Qcrof1h7VmL9P7g1M62zxMkPPbMMfdWYDaXEBSGJEEX6Xi6PLDuqnfibAB9KhBRcexcDjC1VFBVK6gXzEVJNWwW"
-	out, err := GetTransaction(url, sig)
+	out, err := GetTransaction([]string{url}, sig)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -86,7 +86,7 @@ func Test_TransferTransaction(t *testing.T) {
 	sig := "2PSzrxAmn7fHtRhNXK6RCNFzFR2uvN2CpY2T8tsnLJaFiiBHVuqtmekukr7zqDNCekj9TN5jhU4zq32RiTbgosPZ"
 	// sig := "2ud2sUFqwdmYptgSBNZCvZ514tVSrQRTZnzjEErCVix5eZVUhymZfk7qE9QiZGM9PfiDqS4pH2GcfgzAZV2LJikK"
 
-	out, err := GetTransaction(url, sig)
+	out, err := GetTransaction([]string{url}, sig)
 	if err != nil {
 		fmt.Println(err)
 		return

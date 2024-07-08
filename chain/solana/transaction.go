@@ -19,115 +19,126 @@ import (
 	"github.com/ybbus/jsonrpc/v3"
 )
 
-func GetTransaction(url string, signature string) (out *rpc.GetTransactionResult, err error) {
-	rpcClient := jsonrpc.NewClient(url)
-
+func GetTransaction(urls []string, signature string) (out *rpc.GetTransactionResult, err error) {
 	type Tx struct {
 		Commitment                     string `json:"commitment"`
 		Encoding                       string `json:"encoding"`
 		MaxSupportedTransactionVersion int    `json:"maxSupportedTransactionVersion"`
 	}
 
-	resp, err := rpcClient.Call(context.Background(), "getTransaction", signature, &Tx{Commitment: "confirmed", Encoding: "json", MaxSupportedTransactionVersion: 0})
-	if err != nil {
-		util.Logger().Error(fmt.Sprintf("GetTransaction err:%+v", err))
-		return
+	for _, url := range urls {
+		rpcClient := jsonrpc.NewClient(url)
+		resp, err := rpcClient.Call(context.Background(), "getTransaction", signature, &Tx{Commitment: "confirmed", Encoding: "json", MaxSupportedTransactionVersion: 0})
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("GetTransaction err:%+v", err))
+			continue
+		}
+
+		err = resp.GetObject(&out)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("GetTransaction err:%+v", err))
+			continue
+		}
 	}
 
-	err = resp.GetObject(&out)
-	if err != nil {
-		util.Logger().Error(fmt.Sprintf("GetTransaction err:%+v", err))
-		return
-	}
 	return
 }
 
-func GetBalance(url string, pubkey string) (uint64, error) {
-	rpcClient := jsonrpc.NewClient(url)
-	resp, err := rpcClient.Call(context.Background(), "getBalance", pubkey)
-	if err != nil {
-		util.Logger().Error(fmt.Sprintf("getBalance err:%+v", err))
-		return 0, err
-	}
+func GetBalance(urls []string, pubkey string) (uint64, error) {
+	for _, url := range urls {
+		rpcClient := jsonrpc.NewClient(url)
+		resp, err := rpcClient.Call(context.Background(), "getBalance", pubkey)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("getBalance err:%+v", err))
+			continue
+		}
 
-	var balance *GetBalanceResponse
-	err = resp.GetObject(&balance)
-	if err != nil {
-		util.Logger().Error(fmt.Sprintf("GetBalance err:%+v", err))
-		return 0, err
-	}
+		balance := &GetBalanceResponse{}
+		err = resp.GetObject(&balance)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("GetBalance err:%+v", err))
+			continue
+		}
 
-	if balance == nil {
-		util.Logger().Error("balance type err")
-		return 0, nil
-	}
+		if balance == nil {
+			util.Logger().Error("balance type err")
+			continue
+		}
 
-	return balance.Value, nil
+		return balance.Value, nil
+	}
+	return 0, fmt.Errorf("getBalance, pubkey: %s", pubkey)
 }
 
-func GetTokenAccountBalance(url string, pubkey string) (string, float64, error) {
-	rpcClient := jsonrpc.NewClient(url)
-	resp, err := rpcClient.Call(context.Background(), "getTokenAccountBalance", pubkey)
-	if err != nil {
-		util.Logger().Error(fmt.Sprintf("GetTokenAccountBalance err:%+v", err))
-		return "", 0, err
-	}
-	var balance *TokenBalance
-	err = resp.GetObject(&balance)
-	if err != nil {
-		util.Logger().Error(fmt.Sprintf("GetTokenAccountBalance err:%+v", err))
-		return "", 0, err
-	}
+func GetTokenAccountBalance(urls []string, pubkey string) (string, float64, error) {
+	for _, url := range urls {
+		rpcClient := jsonrpc.NewClient(url)
+		resp, err := rpcClient.Call(context.Background(), "getTokenAccountBalance", pubkey)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("GetTokenAccountBalance err:%+v", err))
+			continue
+		}
+		var balance *TokenBalance
+		err = resp.GetObject(&balance)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("GetTokenAccountBalance err:%+v", err))
+			continue
+		}
 
-	if balance == nil {
-		util.Logger().Error("balance type err")
-		return "", 0, nil
-	}
+		if balance == nil {
+			util.Logger().Error("balance type err")
+			continue
+		}
 
-	return balance.Value.UIAmountString, balance.Value.UIAmount, nil
+		return balance.Value.UIAmountString, balance.Value.UIAmount, nil
+	}
+	return "", 0, fmt.Errorf("getTokenAccountBalance err, pubkey: %s", pubkey)
 }
 
-func GetTokenAccountsByOwner(url string, pubkey string, mint string, programid string) (*GetTokenAccountsByOwnerResponse, error) {
-	rpcClient := jsonrpc.NewClient(url)
-	min := &Mint{
-		Mint: mint,
-	}
-	pro := &Program{
-		ProgramId: programid,
-	}
-	encode := &Encoding{
-		Encoding: "jsonParsed",
-	}
-	var resp *jsonrpc.RPCResponse
-	var err error
-	if mint != "" {
-		resp, err = rpcClient.Call(context.Background(), "getTokenAccountsByOwner", pubkey, min, encode)
-	} else if programid != "" {
-		resp, err = rpcClient.Call(context.Background(), "getTokenAccountsByOwner", pubkey, pro, encode)
-	}
+func GetTokenAccountsByOwner(urls []string, pubkey string, mint string, programid string) (*GetTokenAccountsByOwnerResponse, error) {
+	for _, url := range urls {
+		rpcClient := jsonrpc.NewClient(url)
+		min := &Mint{
+			Mint: mint,
+		}
+		pro := &Program{
+			ProgramId: programid,
+		}
+		encode := &Encoding{
+			Encoding: "jsonParsed",
+		}
+		var resp *jsonrpc.RPCResponse
+		var err error
+		if mint != "" {
+			resp, err = rpcClient.Call(context.Background(), "getTokenAccountsByOwner", pubkey, min, encode)
+		} else if programid != "" {
+			resp, err = rpcClient.Call(context.Background(), "getTokenAccountsByOwner", pubkey, pro, encode)
+		}
 
-	if err != nil {
-		util.Logger().Error(fmt.Sprintf("GetTokenAccountsByOwner err:%+v", err))
-		return nil, err
-	}
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("GetTokenAccountsByOwner err:%+v", err))
+			continue
+		}
 
-	var response *GetTokenAccountsByOwnerResponse
-	err = resp.GetObject(&response)
-	if err != nil {
-		util.Logger().Error(fmt.Sprintf("GetTokenAccountsByOwner err:%+v", err))
-		return nil, err
-	}
+		var response *GetTokenAccountsByOwnerResponse
+		err = resp.GetObject(&response)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("GetTokenAccountsByOwner err:%+v", err))
+			continue
+		}
 
-	if response == nil {
-		util.Logger().Error("response type err")
-		return nil, nil
-	}
+		if response == nil {
+			util.Logger().Error("response type err")
+			continue
+		}
 
-	if len(response.Value) <= 0 {
-		return nil, nil
-	}
+		if len(response.Value) <= 0 {
+			continue
+		}
 
-	return response, nil
+		return response, nil
+	}
+	return nil, fmt.Errorf("getTokenAccountsByOwner err, pubkey:%s, mint:%s", pubkey, mint)
 }
 
 func GetTokeMeta(url string, mint string, key string) (out *Result, err error) {
