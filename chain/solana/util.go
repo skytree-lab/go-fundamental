@@ -7,6 +7,11 @@ var (
 	NativeSOL                       = "11111111111111111111111111111111"
 )
 
+type PoolTokenPairAccount struct {
+	BaseMint  solana.PublicKey
+	QuoteMint solana.PublicKey
+}
+
 type TokenAccountInfo struct {
 	Mint    solana.PublicKey
 	Account solana.PublicKey

@@ -138,3 +138,31 @@ func Test_TransferSpl(t *testing.T) {
 	}
 	fmt.Println(sig)
 }
+
+func Test_GetMultipleAccounts(t *testing.T) {
+	urls := []string{
+		"https://go.getblock.io/f79d62f3bd954dbda2fad5f2be26e91e",
+		"https://solana-mainnet.g.alchemy.com/v2/v-8DDF-sKRNirIxSFn9rdszEKw_vu0i5",
+		"https://solana-mainnet.g.alchemy.com/v2/1m6yZduJJzCft9xSRO6ut5bOSXF7CSfH",
+	}
+	acc1 := &PoolTokenPairAccount{
+		BaseMint:  solana.MustPublicKeyFromBase58("ABLksYkz92eK1AbZvxwgfma6Zoz1fKnzhgVGpwBWNQyk"),
+		QuoteMint: solana.MustPublicKeyFromBase58("6Q1hGQVEzL8dZCjn6Vb5jvJj61vozD8BRxDWQh6ZAAgY"),
+	}
+	acc2 := &PoolTokenPairAccount{
+		BaseMint:  solana.MustPublicKeyFromBase58("C8EC7PEZehgcPzdRADLzk12M6bnYTgV5mtvt6Kdjok61"),
+		QuoteMint: solana.MustPublicKeyFromBase58("DFcjeot4H54xfwP5GCtxs1SHBfLfXVESpgwN14gh1xWV"),
+	}
+
+	accs := []*PoolTokenPairAccount{
+		acc1,
+		acc2,
+	}
+
+	out, err := GetMultiAccounts(urls, accs)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(out)
+}
