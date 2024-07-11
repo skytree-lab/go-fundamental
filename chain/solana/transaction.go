@@ -494,3 +494,25 @@ func TransferToken(ctx context.Context, url string, wsUrl string, amount uint64,
 	sig = signature.String()
 	return
 }
+
+func GetMultiAccounts(urls []string, accounts []*PoolTokenPairAccount) (resp *rpc.GetMultipleAccountsResult, err error) {
+	var accs []solana.PublicKey
+	for _, acc := range accounts {
+		accs = append(accs, acc.BaseMint)
+		accs = append(accs, acc.QuoteMint)
+	}
+
+	for _, url := range urls {
+		rpcClient := rpc.New(url)
+		resp, err = rpcClient.GetMultipleAccounts(context.Background(), accs...)
+		if err != nil {
+			continue
+		}
+
+		if resp == nil {
+			continue
+		}
+		return
+	}
+	return
+}
