@@ -401,10 +401,9 @@ func GetTokenAccountsFromMints(ctx context.Context, url string, owner solana.Pub
 			Account: a,
 		})
 	}
-	clientRPC := rpc.New(url)
-	res, err := clientRPC.GetMultipleAccounts(ctx, tokenAccounts...)
+	res, err := getMultiAccounts(url, tokenAccounts)
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("GetMultipleAccounts err:%v", err))
+		util.Logger().Error(fmt.Sprintf("getMultiAccounts err:%v", err))
 		return nil, nil, err
 	}
 
