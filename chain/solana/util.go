@@ -8,8 +8,12 @@ var (
 )
 
 type PoolTokenPairAccount struct {
-	BaseMint  solana.PublicKey
-	QuoteMint solana.PublicKey
+	BaseMint      solana.PublicKey
+	BaseDecimals  int
+	BaseAmount    uint64
+	QuoteMint     solana.PublicKey
+	QuoteDecimals int
+	QuoteAmount   uint64
 }
 
 type TokenAccountInfo struct {
