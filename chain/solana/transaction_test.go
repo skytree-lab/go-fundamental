@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"testing"
 
+	bin "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
+	"github.com/gagliardetto/solana-go/programs/token"
 )
 
 func Test_GetTokenMeta(t *testing.T) {
@@ -141,9 +143,7 @@ func Test_TransferSpl(t *testing.T) {
 
 func Test_GetMultipleAccounts(t *testing.T) {
 	urls := []string{
-		"https://go.getblock.io/f79d62f3bd954dbda2fad5f2be26e91e",
-		"https://solana-mainnet.g.alchemy.com/v2/v-8DDF-sKRNirIxSFn9rdszEKw_vu0i5",
-		"https://solana-mainnet.g.alchemy.com/v2/1m6yZduJJzCft9xSRO6ut5bOSXF7CSfH",
+		"https://solana-mainnet.g.alchemy.com/v2/alch-demo",
 	}
 	acc1 := &PoolTokenPairAccount{
 		BaseMint:  solana.MustPublicKeyFromBase58("ABLksYkz92eK1AbZvxwgfma6Zoz1fKnzhgVGpwBWNQyk"),
@@ -164,5 +164,19 @@ func Test_GetMultipleAccounts(t *testing.T) {
 		fmt.Println(err)
 		return
 	}
+
+	for _, acc := range out.Value {
+		var poolCoinBalance token.Account
+		err = bin.NewBinDecoder(acc.Data.GetBinary()).Decode(&poolCoinBalance)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		fmt.Println(poolCoinBalance.Mint)
+		fmt.Println(poolCoinBalance.Owner)
+		fmt.Println("------------------")
+	}
+
 	fmt.Println(out)
 }
