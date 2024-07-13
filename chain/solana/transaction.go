@@ -3,7 +3,6 @@ package solana
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	bin "github.com/gagliardetto/binary"
@@ -294,47 +293,52 @@ func ExecuteInstructionsAndWaitConfirm(
 	return sig.String(), nil
 }
 
-func TransferSOL(url string, wsUrl string, fromKey string, to string, amount uint64) (sig string, err error) {
-	rpcClient := rpc.New(url)
-	wsClient, err := ws.Connect(context.Background(), wsUrl)
-	if err != nil {
-		return
-	}
-
-	recent, err := rpcClient.GetRecentBlockhash(context.TODO(), rpc.CommitmentFinalized)
-	if err != nil {
-		return
-	}
-
-	accFrom := solana.MustPrivateKeyFromBase58(fromKey)
-	accTo := solana.MustPublicKeyFromBase58(to)
-	tx, err := solana.NewTransaction(
-		[]solana.Instruction{
-			system.NewTransferInstruction(amount, accFrom.PublicKey(), accTo).Build(),
-		},
-		recent.Value.Blockhash,
-		solana.TransactionPayer(accFrom.PublicKey()),
-	)
-	if err != nil {
-		return
-	}
-
-	_, err = tx.Sign(func(key solana.PublicKey) *solana.PrivateKey {
-		if accFrom.PublicKey().Equals(key) {
-			return &accFrom
+func TransferSOL(urls []string, wsUrl string, fromKey string, to string, amount uint64) (sig string, err error) {
+	for _, url := range urls {
+		rpcClient := rpc.New(url)
+		wsClient, err := ws.Connect(context.Background(), wsUrl)
+		if err != nil {
+			continue
 		}
-		return nil
-	})
-	if err != nil {
-		return
-	}
 
-	// Send transaction, and wait for confirmation:
-	signature, err := confirm.SendAndConfirmTransaction(context.TODO(), rpcClient, wsClient, tx)
-	if err != nil {
-		return
+		accFrom := solana.MustPrivateKeyFromBase58(fromKey)
+		accTo := solana.MustPublicKeyFromBase58(to)
+
+		recent, err := rpcClient.GetRecentBlockhash(context.TODO(), rpc.CommitmentFinalized)
+		if err != nil {
+			continue
+		}
+
+		tx, err := solana.NewTransaction(
+			[]solana.Instruction{
+				system.NewTransferInstruction(amount, accFrom.PublicKey(), accTo).Build(),
+			},
+			recent.Value.Blockhash,
+			solana.TransactionPayer(accFrom.PublicKey()),
+		)
+		if err != nil {
+			continue
+		}
+
+		_, err = tx.Sign(func(key solana.PublicKey) *solana.PrivateKey {
+			if accFrom.PublicKey().Equals(key) {
+				return &accFrom
+			}
+			return nil
+		})
+		if err != nil {
+			continue
+		}
+
+		// Send transaction, and wait for confirmation:
+		signature, err := confirm.SendAndConfirmTransaction(context.TODO(), rpcClient, wsClient, tx)
+		if err != nil {
+			continue
+		}
+
+		sig = signature.String()
+		return sig, nil
 	}
-	sig = signature.String()
 	return
 }
 
@@ -431,66 +435,68 @@ func GetTokenAccountsFromMints(ctx context.Context, url string, owner solana.Pub
 	return existingAccounts, missingAccounts, nil
 }
 
-func TransferToken(ctx context.Context, url string, wsUrl string, amount uint64, senderSPLTokenAccount, mint, recipient solana.PublicKey, sender *solana.PrivateKey) (sig string, err error) {
-	rpcClient := rpc.New(url)
-	wsClient, err := ws.Connect(context.Background(), wsUrl)
-	if err != nil {
-		return
-	}
-
-	existingAccounts, instrs, err := CheckAccount(url, sender.PublicKey(), recipient, mint.String(), mint.String())
-	if err != nil {
-		return
-	}
-
-	var instructions []solana.Instruction
-	instructions = append(instructions, instrs...)
-
-	recipientSPLTokenAccount, ok := existingAccounts[mint.String()]
-	if !ok {
-		err = errors.New("invalid account")
-		return
-	}
-
-	var signaturers []solana.PublicKey
-	signaturers = append(signaturers, sender.PublicKey())
-
-	transfer, err := token.NewTransferInstruction(amount,
-		senderSPLTokenAccount,
-		recipientSPLTokenAccount,
-		sender.PublicKey(),
-		signaturers).ValidateAndBuild()
-	if err != nil {
-		return
-	}
-
-	instructions = append(instructions, transfer)
-	recent, err := rpcClient.GetRecentBlockhash(context.TODO(), rpc.CommitmentFinalized)
-	if err != nil {
-		return
-	}
-	trx, err := solana.NewTransaction(instructions,
-		recent.Value.Blockhash,
-		solana.TransactionPayer(sender.PublicKey()))
-	if err != nil {
-		return
-	}
-
-	_, err = trx.Sign(func(key solana.PublicKey) *solana.PrivateKey {
-		if key == sender.PublicKey() {
-			return sender
+func TransferToken(urls []string, wsUrl string, amount uint64, senderSPLTokenAccount, mint, recipient solana.PublicKey, sender *solana.PrivateKey) (sig string, err error) {
+	for _, url := range urls {
+		rpcClient := rpc.New(url)
+		wsClient, err := ws.Connect(context.Background(), wsUrl)
+		if err != nil {
+			continue
 		}
-		return nil
-	})
-	if err != nil {
-		return
-	}
 
-	signature, err := confirm.SendAndConfirmTransaction(ctx, rpcClient, wsClient, trx)
-	if err != nil {
-		return
+		existingAccounts, instrs, err := CheckAccount(url, sender.PublicKey(), recipient, mint.String(), mint.String())
+		if err != nil {
+			continue
+		}
+
+		var instructions []solana.Instruction
+		instructions = append(instructions, instrs...)
+
+		recipientSPLTokenAccount, ok := existingAccounts[mint.String()]
+		if !ok {
+			continue
+		}
+
+		var signaturers []solana.PublicKey
+		signaturers = append(signaturers, sender.PublicKey())
+
+		transfer, err := token.NewTransferInstruction(amount,
+			senderSPLTokenAccount,
+			recipientSPLTokenAccount,
+			sender.PublicKey(),
+			signaturers).ValidateAndBuild()
+		if err != nil {
+			continue
+		}
+
+		instructions = append(instructions, transfer)
+		recent, err := rpcClient.GetRecentBlockhash(context.TODO(), rpc.CommitmentFinalized)
+		if err != nil {
+			continue
+		}
+		trx, err := solana.NewTransaction(instructions,
+			recent.Value.Blockhash,
+			solana.TransactionPayer(sender.PublicKey()))
+		if err != nil {
+			continue
+		}
+
+		_, err = trx.Sign(func(key solana.PublicKey) *solana.PrivateKey {
+			if key == sender.PublicKey() {
+				return sender
+			}
+			return nil
+		})
+		if err != nil {
+			continue
+		}
+
+		signature, err := confirm.SendAndConfirmTransaction(context.Background(), rpcClient, wsClient, trx)
+		if err != nil {
+			continue
+		}
+		sig = signature.String()
+		return sig, nil
 	}
-	sig = signature.String()
 	return
 }
 
