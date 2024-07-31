@@ -131,10 +131,6 @@ func GetTokenAccountsByOwner(urls []string, pubkey string, mint string, programi
 			continue
 		}
 
-		if len(response.Value) <= 0 {
-			continue
-		}
-
 		return response, nil
 	}
 	return nil, fmt.Errorf("getTokenAccountsByOwner err, pubkey:%s, mint:%s", pubkey, mint)
