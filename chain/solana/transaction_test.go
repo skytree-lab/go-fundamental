@@ -10,8 +10,13 @@ import (
 )
 
 func Test_GetTokenMeta(t *testing.T) {
-	meta, _ := GetTokeMeta("https://api.shyft.to", "4DWaPEVY3E3bkG2APWS13wRKRiQeCpz4G4ZGVuyCYJU9", []string{""})
+	meta, _ := GetTokenMeta("https://api.shyft.to", "4DWaPEVY3E3bkG2APWS13wRKRiQeCpz4G4ZGVuyCYJU9", []string{""})
 	fmt.Println(meta)
+}
+
+func Test_GetPoolDecimals(t *testing.T) {
+	resp, _ := GetTokenDecimal([]string{"https://solana-mainnet.g.alchemy.com/v2/alch-demo"}, "4DWaPEVY3E3bkG2APWS13wRKRiQeCpz4G4ZGVuyCYJU9")
+	fmt.Println(resp)
 }
 
 func Test_GetPoolInfo(t *testing.T) {

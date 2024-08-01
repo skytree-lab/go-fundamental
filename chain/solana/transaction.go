@@ -136,7 +136,30 @@ func GetTokenAccountsByOwner(urls []string, pubkey string, mint string, programi
 	return nil, fmt.Errorf("getTokenAccountsByOwner err, pubkey:%s, mint:%s", pubkey, mint)
 }
 
-func GetTokeMeta(url string, mint string, keys []string) (out *Result, err error) {
+func GetTokenDecimal(urls []string, mint string) (decimals int, err error) {
+	pubKey := solana.MustPublicKeyFromBase58(mint)
+	var resp *rpc.GetAccountInfoResult
+	for _, url := range urls {
+		client := rpc.New(url)
+		resp, err = client.GetAccountInfo(context.TODO(), pubKey)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("GetAccountInfo err:%+v", err))
+			continue
+		}
+
+		var mint token.Mint
+		err = bin.NewBinDecoder(resp.Value.Data.GetBinary()).Decode(&mint)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("GetAccountInfo err:%+v", err))
+			continue
+		}
+		decimals = int(mint.Decimals)
+		return
+	}
+	return
+}
+
+func GetTokenMeta(url string, mint string, keys []string) (out *Result, err error) {
 	path := "/sol/v1/token/get_info?network=mainnet-beta&token_address="
 	for _, key := range keys {
 		u := fmt.Sprintf("%s%s%s", url, path, mint)
