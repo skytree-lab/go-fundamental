@@ -136,39 +136,40 @@ func GetTokenAccountsByOwner(urls []string, pubkey string, mint string, programi
 	return nil, fmt.Errorf("getTokenAccountsByOwner err, pubkey:%s, mint:%s", pubkey, mint)
 }
 
-func GetTokeMeta(url string, mint string, key string) (out *Result, err error) {
+func GetTokeMeta(url string, mint string, keys []string) (out *Result, err error) {
 	path := "/sol/v1/token/get_info?network=mainnet-beta&token_address="
-	u := fmt.Sprintf("%s%s%s", url, path, mint)
-	client := util.GetHTTPClient()
-	header := make(map[string]string)
-	header["x-api-key"] = key
-	header["Content-Type"] = " application/json"
-	header["Accept"] = " application/json"
-	resp, err := util.HTTPReq("GET", u, client, nil, header)
-	if err != nil {
-		util.Logger().Error(fmt.Sprintf("GetTokeMeta err:%+v", err))
-		return nil, err
-	}
+	for _, key := range keys {
+		u := fmt.Sprintf("%s%s%s", url, path, mint)
+		client := util.GetHTTPClient()
+		header := make(map[string]string)
+		header["x-api-key"] = key
+		header["Content-Type"] = " application/json"
+		header["Accept"] = " application/json"
+		resp, err := util.HTTPReq("GET", u, client, nil, header)
+		if err != nil {
+			util.Logger().Info(fmt.Sprintf("GetTokeMeta err:%+v", err))
+			continue
+		}
 
-	var meta MetaResponse
-	err = json.Unmarshal(resp, &meta)
-	if err != nil {
-		util.Logger().Error(fmt.Sprintf("GetTokeMeta err:%+v", err))
-		return nil, err
-	}
+		var meta MetaResponse
+		err = json.Unmarshal(resp, &meta)
+		if err != nil {
+			util.Logger().Info(fmt.Sprintf("GetTokeMeta err:%+v", err))
+			continue
+		}
 
-	if !meta.Success {
-		err := fmt.Errorf("GetTokeMeta err:%s", mint)
-		return nil, err
-	}
+		if !meta.Success {
+			util.Logger().Info(fmt.Sprintf("GetTokeMeta err:%+v", mint))
+			continue
+		}
 
-	return meta.Result, nil
+		return meta.Result, nil
+	}
+	return nil, fmt.Errorf("cann't fetch meta")
 }
 
-func GetPoolInfo(url string, key string, tokenA string, tokenB string) (*PoolInfoResponse, error) {
+func GetPoolInfo(url string, keys []string, tokenA string, tokenB string) (*PoolInfoResponse, error) {
 	path := "/v0/graphql/?api_key="
-	u := fmt.Sprintf("%s%s%s", url, path, key)
-	client := graphql.NewClient(u)
 	q := fmt.Sprintf(`
 query MyQuery {
   Raydium_LiquidityPoolv4(
@@ -192,15 +193,21 @@ query MyQuery {
     pubkey
   }
 }`, tokenA, tokenB)
-	req := graphql.NewRequest(q)
-	var resp PoolInfoResponse
-	err := client.Run(context.Background(), req, &resp)
-	if err != nil {
-		util.Logger().Error(fmt.Sprintf("graphql run err:%v", err))
-		return nil, err
-	}
+	for _, key := range keys {
+		u := fmt.Sprintf("%s%s%s", url, path, key)
+		client := graphql.NewClient(u)
 
-	return &resp, nil
+		req := graphql.NewRequest(q)
+		var resp PoolInfoResponse
+		err := client.Run(context.Background(), req, &resp)
+		if err != nil {
+			util.Logger().Info(fmt.Sprintf("graphql run err:%v", err))
+			continue
+		}
+
+		return &resp, nil
+	}
+	return nil, fmt.Errorf("cann't pool info")
 }
 
 func BuildTransacion(ctx context.Context, clientRPC *rpc.Client, signers []solana.PrivateKey, instrs ...solana.Instruction) (*solana.Transaction, error) {
