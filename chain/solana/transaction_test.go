@@ -10,12 +10,12 @@ import (
 )
 
 func Test_GetTokenMeta(t *testing.T) {
-	meta, _ := GetTokeMeta("https://api.shyft.to", "4DWaPEVY3E3bkG2APWS13wRKRiQeCpz4G4ZGVuyCYJU9", "")
+	meta, _ := GetTokeMeta("https://api.shyft.to", "4DWaPEVY3E3bkG2APWS13wRKRiQeCpz4G4ZGVuyCYJU9", []string{""})
 	fmt.Println(meta)
 }
 
 func Test_GetPoolInfo(t *testing.T) {
-	resp, _ := GetPoolInfo("https://programs.shyft.to", "", "4DWaPEVY3E3bkG2APWS13wRKRiQeCpz4G4ZGVuyCYJU9", "So11111111111111111111111111111111111111112")
+	resp, _ := GetPoolInfo("https://programs.shyft.to", []string{""}, "4DWaPEVY3E3bkG2APWS13wRKRiQeCpz4G4ZGVuyCYJU9", "So11111111111111111111111111111111111111112")
 	fmt.Println(resp)
 }
 
