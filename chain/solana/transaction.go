@@ -25,9 +25,10 @@ func GetTransaction(urls []string, signature string) (out *rpc.GetTransactionRes
 		MaxSupportedTransactionVersion int    `json:"maxSupportedTransactionVersion"`
 	}
 
+	var resp *jsonrpc.RPCResponse
 	for _, url := range urls {
 		rpcClient := jsonrpc.NewClient(url)
-		resp, err := rpcClient.Call(context.Background(), "getTransaction", signature, &Tx{Commitment: "confirmed", Encoding: "json", MaxSupportedTransactionVersion: 0})
+		resp, err = rpcClient.Call(context.Background(), "getTransaction", signature, &Tx{Commitment: "confirmed", Encoding: "json", MaxSupportedTransactionVersion: 0})
 		if err != nil {
 			util.Logger().Error(fmt.Sprintf("GetTransaction err:%+v", err))
 			continue
@@ -38,6 +39,11 @@ func GetTransaction(urls []string, signature string) (out *rpc.GetTransactionRes
 			util.Logger().Error(fmt.Sprintf("GetTransaction err:%+v", err))
 			continue
 		}
+
+		if out == nil {
+			continue
+		}
+		return
 	}
 
 	return
