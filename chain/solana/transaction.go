@@ -7,6 +7,7 @@ import (
 
 	bin "github.com/gagliardetto/binary"
 	"github.com/gagliardetto/solana-go"
+	lookup "github.com/gagliardetto/solana-go/programs/address-lookup-table"
 	associatedtokenaccount "github.com/gagliardetto/solana-go/programs/associated-token-account"
 	"github.com/gagliardetto/solana-go/programs/system"
 	"github.com/gagliardetto/solana-go/programs/token"
@@ -566,4 +567,51 @@ func GetMultiAccounts(urls []string, accounts []*PoolTokenPairAccount) (resp *rp
 		return
 	}
 	return
+}
+
+func getLookupTable(key solana.PublicKey, urls []string) (solana.PublicKeySlice, error) {
+	for _, url := range urls {
+		client := rpc.New(url)
+		info, err := client.GetAccountInfo(context.Background(), key)
+		if err != nil {
+			continue
+		}
+		tableContent, err := lookup.DecodeAddressLookupTableState(info.GetBinary())
+		if err != nil {
+			continue
+		}
+		return tableContent.Addresses, nil
+	}
+	return nil, nil
+}
+
+func ProcessTransactionWithAddressLookups(tx *solana.Transaction, urls []string) error {
+	tblKeys := tx.Message.GetAddressTableLookups().GetTableIDs()
+	if len(tblKeys) == 0 {
+		return nil
+	}
+	numLookups := tx.Message.GetAddressTableLookups().NumLookups()
+	if numLookups == 0 {
+		return nil
+	}
+
+	resolutions := make(map[solana.PublicKey]solana.PublicKeySlice)
+	for _, key := range tblKeys {
+		slice, err := getLookupTable(key, urls)
+		if err != nil {
+			return err
+		}
+		resolutions[key] = slice
+	}
+
+	err := tx.Message.SetAddressTables(resolutions)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Message.ResolveLookups()
+	if err != nil {
+		return err
+	}
+	return nil
 }
