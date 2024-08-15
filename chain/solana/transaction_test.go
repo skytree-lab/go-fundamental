@@ -184,3 +184,50 @@ func Test_GetMultipleAccounts(t *testing.T) {
 
 	fmt.Println(out)
 }
+
+func Test_ProcessTransactionWithAddressLookups(t *testing.T) {
+	// sig := "5EnN3PHQou83bnsLJrWALSTs9LK4gxVPMJZa6k3c77yLuNRDPSY42FYa49FYt4u53SGQ3Ti32pxjY6sCPxzXV9FU"
+	// sig := "58khGDwFBpRgV1zqe8z43Q58rqcPatmWMiWzYca4mqapCCQk4MZexxUd4Ju3DTEo4FUfaBhBQAEjqt4jU3CiGSWj"
+	sig := "WpWnyWgMVAhwCxqsQMmiCjxuzLVDLC1Xb15qtNrcy5NTVcmZDNjwDdmcfHaLhqZmYeqtUy6sH6B6GubtNRcyyGL"
+	urls := []string{
+		"https://solana-mainnet.g.alchemy.com/v2/alch-demo",
+	}
+	out, err := GetTransaction(urls, sig)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if out == nil || out.Transaction == nil {
+		err := fmt.Errorf("tx not found, txid:%s", sig)
+		fmt.Println(err)
+		return
+	}
+
+	tx, err := out.Transaction.GetTransaction()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	for _, key := range tx.Message.AccountKeys {
+		fmt.Println(key)
+	}
+
+	err = ProcessTransactionWithAddressLookups(tx, urls)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	slice, err := tx.Message.GetAllKeys()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println("-------------------")
+	for _, key := range slice {
+		fmt.Println(key)
+	}
+}
