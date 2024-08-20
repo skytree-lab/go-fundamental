@@ -231,3 +231,45 @@ func Test_ProcessTransactionWithAddressLookups(t *testing.T) {
 		fmt.Println(key)
 	}
 }
+
+func Test_GetTokenMint(t *testing.T) {
+	mint := "7qvaWYSZgzx2ingvoLpHPJVDBDKDzRfBtRrFdjzJwLeH"
+	// mint := "9gCFWhH4NUgqrVGRD4v7kBUC9nunq6DuEAJumRGNiD8"
+	urls := []string{
+		"https://solana-mainnet.g.alchemy.com/v2/alch-demo",
+	}
+	tokenmint, err := GetTokenMint(urls, mint)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if tokenmint == nil {
+		err := fmt.Errorf("token not found, mint:%s", mint)
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(tokenmint)
+}
+
+func Test_GetTokenDecimals(t *testing.T) {
+	// mint := "7qvaWYSZgzx2ingvoLpHPJVDBDKDzRfBtRrFdjzJwLeH"
+	mint := "9gCFWhH4NUgqrVGRD4v7kBUC9nunq6DuEAJumRGNiD8"
+	urls := []string{
+		"https://solana-mainnet.g.alchemy.com/v2/alch-demo",
+	}
+	tokenmint, err := GetTokenMint(urls, mint)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if tokenmint == nil {
+		err := fmt.Errorf("token not found, mint:%s", mint)
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(tokenmint.Decimals)
+}

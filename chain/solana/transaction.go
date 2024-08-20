@@ -143,9 +143,10 @@ func GetTokenAccountsByOwner(urls []string, pubkey string, mint string, programi
 	return nil, fmt.Errorf("getTokenAccountsByOwner err, pubkey:%s, mint:%s", pubkey, mint)
 }
 
-func GetTokenDecimal(urls []string, mint string) (decimals int, err error) {
+func GetTokenMint(urls []string, mint string) (tokenmint *token.Mint, err error) {
 	pubKey := solana.MustPublicKeyFromBase58(mint)
 	var resp *rpc.GetAccountInfoResult
+	tokenmint = &token.Mint{}
 	for _, url := range urls {
 		client := rpc.New(url)
 		resp, err = client.GetAccountInfo(context.TODO(), pubKey)
@@ -153,16 +154,23 @@ func GetTokenDecimal(urls []string, mint string) (decimals int, err error) {
 			util.Logger().Error(fmt.Sprintf("GetAccountInfo err:%+v", err))
 			continue
 		}
-
-		var mint token.Mint
-		err = bin.NewBinDecoder(resp.Value.Data.GetBinary()).Decode(&mint)
+		err = bin.NewBinDecoder(resp.Value.Data.GetBinary()).Decode(tokenmint)
 		if err != nil {
 			util.Logger().Error(fmt.Sprintf("GetAccountInfo err:%+v", err))
 			continue
 		}
-		decimals = int(mint.Decimals)
 		return
 	}
+	return
+}
+
+func GetTokenDecimal(urls []string, mint string) (decimals int, err error) {
+	tokenmint, err := GetTokenMint(urls, mint)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("GetTokenDecimal err:%+v", err))
+		return
+	}
+	decimals = int(tokenmint.Decimals)
 	return
 }
 
