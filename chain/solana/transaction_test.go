@@ -77,7 +77,7 @@ func Test_SwapTransaction(t *testing.T) {
 		fmt.Println(err)
 	}
 
-	param, succeed, err := ParseRaydiumSwapInstructionParam(out)
+	param, succeed, err := ParseRaydiumSwapInstructionParam(out, []string{url})
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -89,8 +89,8 @@ func Test_SwapTransaction(t *testing.T) {
 
 func Test_TransferTransaction(t *testing.T) {
 	url := "https://solana-mainnet.g.alchemy.com/v2/alch-demo"
-	sig := "2PSzrxAmn7fHtRhNXK6RCNFzFR2uvN2CpY2T8tsnLJaFiiBHVuqtmekukr7zqDNCekj9TN5jhU4zq32RiTbgosPZ"
-	// sig := "2ud2sUFqwdmYptgSBNZCvZ514tVSrQRTZnzjEErCVix5eZVUhymZfk7qE9QiZGM9PfiDqS4pH2GcfgzAZV2LJikK"
+	// sig := "2PSzrxAmn7fHtRhNXK6RCNFzFR2uvN2CpY2T8tsnLJaFiiBHVuqtmekukr7zqDNCekj9TN5jhU4zq32RiTbgosPZ"
+	sig := "yEPhnF66CMGMjtCCUcnSJXakGsbGXwzsT1QxPoYP3gUNGcod5ZkMfJrXBmLDawsMEmAzGXDuzFowShTmAyepGTU"
 
 	out, err := GetTransaction([]string{url}, sig)
 	if err != nil {
@@ -98,7 +98,7 @@ func Test_TransferTransaction(t *testing.T) {
 		return
 	}
 
-	params, succeed, err := ParseTransferSOLInstructionParam(out)
+	params, succeed, err := ParseTransferSOLInstructionParam(out, []string{url})
 	if err != nil {
 		fmt.Println(err)
 		return

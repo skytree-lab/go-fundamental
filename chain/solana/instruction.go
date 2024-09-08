@@ -11,7 +11,7 @@ import (
 	"github.com/skytree-lab/go-fundamental/util"
 )
 
-func ParseTransferSOLInstructionParam(out *rpc.GetTransactionResult) (params []*TransferSOLInstructionParam, succeed bool, err error) {
+func ParseTransferSOLInstructionParam(out *rpc.GetTransactionResult, urls []string) (params []*TransferSOLInstructionParam, succeed bool, err error) {
 	if out == nil || out.Transaction == nil || out.Meta == nil {
 		util.Logger().Error("out GetTransaction nil")
 		return
@@ -26,6 +26,18 @@ func ParseTransferSOLInstructionParam(out *rpc.GetTransactionResult) (params []*
 	tx, err := out.Transaction.GetTransaction()
 	if err != nil {
 		util.Logger().Error(fmt.Sprintf("out GetTransaction err:%v", err))
+		return
+	}
+
+	err = ProcessTransactionWithAddressLookups(tx, urls)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("parse err:%v", err))
+		return
+	}
+
+	accoountKeys, err := tx.Message.GetAllKeys()
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("parse err:%v", err))
 		return
 	}
 
@@ -40,11 +52,11 @@ func ParseTransferSOLInstructionParam(out *rpc.GetTransactionResult) (params []*
 			continue
 		}
 
-		if len(tx.Message.AccountKeys) <= int(instruction.ProgramIDIndex) {
+		if len(accoountKeys) <= int(instruction.ProgramIDIndex) {
 			continue
 		}
 
-		if tx.Message.AccountKeys[instruction.ProgramIDIndex] != solana.SystemProgramID {
+		if accoountKeys[instruction.ProgramIDIndex] != solana.SystemProgramID {
 			continue
 		}
 
@@ -52,8 +64,8 @@ func ParseTransferSOLInstructionParam(out *rpc.GetTransactionResult) (params []*
 		destIdx := instruction.Accounts[1]
 
 		param := &TransferSOLInstructionParam{
-			Source:      tx.Message.AccountKeys[sourceIdx].String(),
-			Destination: tx.Message.AccountKeys[destIdx].String(),
+			Source:      accoountKeys[sourceIdx].String(),
+			Destination: accoountKeys[destIdx].String(),
 			Amount:      bin.LE.Uint64(datas[4:12]),
 		}
 
@@ -63,7 +75,7 @@ func ParseTransferSOLInstructionParam(out *rpc.GetTransactionResult) (params []*
 	return
 }
 
-func ParseRaydiumSwapInstructionParam(out *rpc.GetTransactionResult) (param *RaydiumSwapInstructionParam, succeed bool, err error) {
+func ParseRaydiumSwapInstructionParam(out *rpc.GetTransactionResult, urls []string) (param *RaydiumSwapInstructionParam, succeed bool, err error) {
 	if out == nil || out.Transaction == nil || out.Meta == nil {
 		util.Logger().Error("out GetTransaction nil")
 		return
@@ -80,6 +92,19 @@ func ParseRaydiumSwapInstructionParam(out *rpc.GetTransactionResult) (param *Ray
 		util.Logger().Error(fmt.Sprintf("out GetTransaction err:%v", err))
 		return
 	}
+
+	err = ProcessTransactionWithAddressLookups(tx, urls)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("parse err:%v", err))
+		return
+	}
+
+	accoountKeys, err := tx.Message.GetAllKeys()
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("parse err:%v", err))
+		return
+	}
+
 	tempParam := &RaydiumSwapInstructionParam{}
 	for idx, instruction := range tx.Message.Instructions {
 		datas := []byte(instruction.Data)
@@ -92,11 +117,11 @@ func ParseRaydiumSwapInstructionParam(out *rpc.GetTransactionResult) (param *Ray
 			continue
 		}
 
-		if len(tx.Message.AccountKeys) <= int(instruction.ProgramIDIndex) {
+		if len(accoountKeys) <= int(instruction.ProgramIDIndex) {
 			continue
 		}
 
-		if tx.Message.AccountKeys[instruction.ProgramIDIndex] != RaydiumLiquidityPoolv4ProgramID {
+		if accoountKeys[instruction.ProgramIDIndex] != RaydiumLiquidityPoolv4ProgramID {
 			continue
 		}
 
@@ -109,11 +134,11 @@ func ParseRaydiumSwapInstructionParam(out *rpc.GetTransactionResult) (param *Ray
 			}
 
 			for _, innerInstruction := range inner.Instructions {
-				if len(tx.Message.AccountKeys) <= int(innerInstruction.ProgramIDIndex) {
+				if len(accoountKeys) <= int(innerInstruction.ProgramIDIndex) {
 					continue
 				}
 
-				if tx.Message.AccountKeys[innerInstruction.ProgramIDIndex] != solana.TokenProgramID {
+				if accoountKeys[innerInstruction.ProgramIDIndex] != solana.TokenProgramID {
 					continue
 				}
 
@@ -131,14 +156,14 @@ func ParseRaydiumSwapInstructionParam(out *rpc.GetTransactionResult) (param *Ray
 					continue
 				}
 
-				if tx.Message.AccountKeys[innerInstruction.ProgramIDIndex] != solana.TokenProgramID {
+				if accoountKeys[innerInstruction.ProgramIDIndex] != solana.TokenProgramID {
 					continue
 				}
 
 				swapdata := &RaydiumSwapInnerInstructionData{
-					Source:       tx.Message.AccountKeys[innerInstruction.Accounts[0]].String(),
-					Destionation: tx.Message.AccountKeys[innerInstruction.Accounts[1]].String(),
-					Owner:        tx.Message.AccountKeys[innerInstruction.Accounts[2]].String(),
+					Source:       accoountKeys[innerInstruction.Accounts[0]].String(),
+					Destionation: accoountKeys[innerInstruction.Accounts[1]].String(),
+					Owner:        accoountKeys[innerInstruction.Accounts[2]].String(),
 					Amount:       bin.LE.Uint64(dataBytes[1:9]),
 				}
 				if innerInstruction.Accounts[0] == userSourceIdx {
