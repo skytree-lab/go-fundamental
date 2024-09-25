@@ -275,7 +275,7 @@ func ParseRaydiumCPSwapInstructionParam(out *rpc.GetTransactionResult, urls []st
 				}
 				if innerInstruction.Accounts[0] == userSourceIdx {
 					tempParam.SwapIn = swapdata
-				} else if innerInstruction.Accounts[1] == userDestinationIdx {
+				} else if innerInstruction.Accounts[2] == userDestinationIdx {
 					tempParam.SwapOut = swapdata
 				}
 			}
