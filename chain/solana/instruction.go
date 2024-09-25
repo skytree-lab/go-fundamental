@@ -232,8 +232,8 @@ func ParseRaydiumCPSwapInstructionParam(out *rpc.GetTransactionResult, urls []st
 			continue
 		}
 
-		userSourceIdx := instruction.Accounts[15]
-		userDestinationIdx := instruction.Accounts[16]
+		userSourceIdx := instruction.Accounts[4]
+		userDestinationIdx := instruction.Accounts[5]
 
 		for _, inner := range out.Meta.InnerInstructions {
 			if inner.Index != uint16(idx) {
