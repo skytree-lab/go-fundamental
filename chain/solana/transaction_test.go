@@ -47,7 +47,7 @@ func Test_GettokenAccountBalance(t *testing.T) {
 
 func Test_GetBalance(t *testing.T) {
 	url := "https://solana-mainnet.g.alchemy.com/v2/alch-demo"
-	pubkey := "J27ma1MPBRvmPJxLqBqQGNECMXDm9L6abFa4duKiPosa"
+	pubkey := "6huu25nWzFtBWPMQmWRzKLD4Wtfq11SSjZTU6oitLqdz"
 	b, err := GetBalance([]string{url}, pubkey)
 	if err != nil {
 		fmt.Println(err)
@@ -108,15 +108,36 @@ func Test_TransferTransaction(t *testing.T) {
 	fmt.Println(params)
 }
 
+func Test_TransferCpTransaction(t *testing.T) {
+	url := "https://solana-mainnet.g.alchemy.com/v2/alch-demo"
+	// sig := "2PSzrxAmn7fHtRhNXK6RCNFzFR2uvN2CpY2T8tsnLJaFiiBHVuqtmekukr7zqDNCekj9TN5jhU4zq32RiTbgosPZ"
+	sig := "yEPhnF66CMGMjtCCUcnSJXakGsbGXwzsT1QxPoYP3gUNGcod5ZkMfJrXBmLDawsMEmAzGXDuzFowShTmAyepGTU"
+
+	out, err := GetTransaction([]string{url}, sig)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	params, succeed, err := ParseRaydiumCpSwapInstructionParam(out, []string{url})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(succeed)
+	fmt.Println(params)
+}
+
 func Test_TransferSOL(t *testing.T) {
-	urls := []string{"https://solana-mainnet.g.alchemy.com/v2/"}
+	urls := []string{"https://api.mainnet-beta.solana.com"}
 	wsurl := "wss://api.mainnet-beta.solana.com"
 	from := ""
 	to := "6huu25nWzFtBWPMQmWRzKLD4Wtfq11SSjZTU6oitLqdz"
 
 	acc := solana.MustPrivateKeyFromBase58(from)
 	fmt.Println(acc.PublicKey().String())
-	sig, err := TransferSOL(urls, wsurl, from, to, 100000000)
+	sig, err := TransferSOL(urls, wsurl, from, to, 5000000)
 	if err != nil {
 		fmt.Println(err)
 	} else {
