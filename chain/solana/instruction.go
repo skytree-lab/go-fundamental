@@ -269,8 +269,8 @@ func ParseRaydiumCPSwapInstructionParam(out *rpc.GetTransactionResult, urls []st
 
 				swapdata := &RaydiumSwapInnerInstructionData{
 					Source:       accoountKeys[innerInstruction.Accounts[0]].String(),
-					Destionation: accoountKeys[innerInstruction.Accounts[1]].String(),
-					Owner:        accoountKeys[innerInstruction.Accounts[2]].String(),
+					Destionation: accoountKeys[innerInstruction.Accounts[2]].String(),
+					Owner:        accoountKeys[innerInstruction.Accounts[3]].String(),
 					Amount:       bin.LE.Uint64(dataBytes[1:9]),
 				}
 				if innerInstruction.Accounts[0] == userSourceIdx {
