@@ -254,7 +254,7 @@ func ParseRaydiumCPSwapInstructionParam(out *rpc.GetTransactionResult, urls []st
 				}
 
 				dataBytes := []byte(innerInstruction.Data)
-				if len(dataBytes) != 9 {
+				if len(dataBytes) != 10 {
 					continue
 				}
 
