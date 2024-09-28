@@ -73,11 +73,22 @@ func ConvertTokenAmountToFloat64(amt string, tokenDecimal int32) float64 {
 	return amountFloat
 }
 
+func GetBigIntFromString(v0 string) (n0 *big.Int, err error) {
+	n0 = new(big.Int)
+	n0, ok := n0.SetString(v0, 10)
+	if !ok {
+		err = errors.New("GetBigIntFromString err")
+		Logger().Error(err.Error())
+		return
+	}
+	return
+}
+
 func ConvertBigIntFromString(v0, v1 string) (n0 *big.Int, n1 *big.Int, err error) {
 	n0 = new(big.Int)
 	n0, ok := n0.SetString(v0, 10)
 	if !ok {
-		err = errors.New("RawProofToZkProof err")
+		err = errors.New("ConvertBigIntFromString err")
 		Logger().Error(err.Error())
 		return
 	}
@@ -85,7 +96,7 @@ func ConvertBigIntFromString(v0, v1 string) (n0 *big.Int, n1 *big.Int, err error
 	n1 = new(big.Int)
 	n1, ok = n1.SetString(v1, 10)
 	if !ok {
-		err = errors.New("RawProofToZkProof err")
+		err = errors.New("ConvertBigIntFromString err")
 		Logger().Error(err.Error())
 		return
 	}
