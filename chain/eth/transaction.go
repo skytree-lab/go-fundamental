@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -11,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/skytree-lab/go-fundamental/chain/eth/contract"
 	"github.com/skytree-lab/go-fundamental/util"
 )
 
@@ -53,6 +55,32 @@ func GetBalance(urls []string, addr string) (*big.Int, error) {
 	return nil, nil
 }
 
+func GetTokenBalance(urls []string, token string, addr string) (amount *big.Int, err error) {
+	var client *ethclient.Client
+	var instance *contract.Usdt
+	tokenAddr := common.HexToAddress(token)
+	user := common.HexToAddress(addr)
+	for _, url := range urls {
+		client, err = ethclient.Dial(url)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("GetTokenBalance Dial err is: %+v", err))
+			continue
+		}
+		instance, err = contract.NewUsdt(tokenAddr, client)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("GetTokenBalance NewUsdt err is: %+v", err))
+			continue
+		}
+		amount, err = instance.BalanceOf(&bind.CallOpts{}, user)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("GetTokenBalance BalanceOf err is: %+v", err))
+			continue
+		}
+		return
+	}
+	return
+}
+
 func TransferETH(urls []string, fromKey string, to string, amount *big.Int) (string, error) {
 	toAddress := common.HexToAddress(to)
 	value := amount
@@ -68,7 +96,7 @@ func TransferETH(urls []string, fromKey string, to string, amount *big.Int) (str
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	gasLimit := uint64(21000) // in units
+	gasLimit := uint64(0) // in units
 
 	for _, url := range urls {
 		client, err := ethclient.Dial(url)
@@ -109,44 +137,121 @@ func TransferETH(urls []string, fromKey string, to string, amount *big.Int) (str
 	return "", nil
 }
 
-func CreateTransactionOpts(client *ethclient.Client, key *ecdsa.PrivateKey, chainId uint64, caller common.Address) (opts *bind.TransactOpts, err error) {
-	nonce, err := client.PendingNonceAt(context.Background(), caller)
+func TransferErc20Token(urls []string, fromKey string, to string, amount *big.Int, token string, chainid uint64) (hash string, succeed bool, err error) {
+	var client *ethclient.Client
+	var erc20 *contract.UsdtTransactor
+	var tx *types.Transaction
+	var opts *bind.TransactOpts
+	tokenAddr := common.HexToAddress(token)
+	privateKey, err := crypto.HexToECDSA(fromKey)
 	if err != nil {
-		errMsg := fmt.Sprintf("CreateTransactionOpts:client.PendingNonceAt err: %+v", err)
+		errMsg := fmt.Sprintf("TransferErc20Token err, reason=[%s]", err)
 		util.Logger().Error(errMsg)
-		return nil, err
+		return
+	}
+	addr, err := util.PrivateToAddress(fromKey)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("TransferErc20Token Dial err is: %+v", err))
+		return
 	}
 
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if err != nil {
-		errMsg := fmt.Sprintf("CreateTransactionOpts:client.SuggestGasPrice err: %+v", err)
-		util.Logger().Error(errMsg)
-		return nil, err
+	for _, url := range urls {
+		client, err = ethclient.Dial(url)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("TransferErc20Token Dial err is: %+v", err))
+			continue
+		}
+
+		opts, err = util.CreateTransactionOpts(client, privateKey, chainid, common.HexToAddress(addr))
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("TransferErc20Token CreateTransactionOpts err is: %+v", err))
+			continue
+		}
+
+		erc20, err = contract.NewUsdtTransactor(tokenAddr, client)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("TransferErc20Token NewUsdtTransactor err is: %+v", err))
+			continue
+		}
+
+		tx, err = erc20.Transfer(opts, common.HexToAddress(to), amount)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("TransferErc20Token Transfer err is: %+v", err))
+			continue
+		}
+		_, succeed, err = util.TxWaitToSync(opts.Context, client, tx)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("TransferErc20Token Transfer err is: %+v", err))
+			continue
+		}
+
+		if succeed {
+			hash = tx.Hash().String()
+			return
+		}
 	}
-
-	srcChainID := big.NewInt(int64(chainId))
-	opts, err = bind.NewKeyedTransactorWithChainID(key, srcChainID)
-	if err != nil {
-		errMsg := fmt.Sprintf("CreateTransactionOpts:NewKeyedTransactorWithChainID err: %+v", err)
-		util.Logger().Error(errMsg)
-		return nil, err
-	}
-
-	opts.Nonce = big.NewInt(int64(nonce))
-	opts.Value = big.NewInt(0) // in wei
-	opts.GasLimit = uint64(0)  // in units
-	opts.GasPrice = new(big.Int).Mul(gasPrice, big.NewInt(2))
-
-	return opts, nil
+	return
 }
 
-func TxWaitToSync(ctx context.Context, client *ethclient.Client, tx *types.Transaction) (*types.Receipt, bool, error) {
-	receipt, err := bind.WaitMined(context.Background(), client, tx)
+func FetchErc20TokenMeta(urls []string, token string) (decimal int, symbol string, name string, err error) {
+	var client *ethclient.Client
+	var instance *contract.Usdt
+	var decimalBig *big.Int
+	tokenAddr := common.HexToAddress(token)
+	for _, url := range urls {
+		client, err = ethclient.Dial(url)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("FetchErc20TokenMeta Dial err is: %+v", err))
+			continue
+		}
+		instance, err = contract.NewUsdt(tokenAddr, client)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("FetchErc20TokenMeta NewUsdt err is: %+v", err))
+			continue
+		}
+		decimalBig, err = instance.Decimals(&bind.CallOpts{})
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("FetchErc20TokenMeta Decimals err is: %+v", err))
+			continue
+		}
+		decimal = int(decimalBig.Int64())
+		name, err = instance.Name(&bind.CallOpts{})
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("FetchErc20TokenMeta Name err is: %+v", err))
+			continue
+		}
+		symbol, err = instance.Symbol(&bind.CallOpts{})
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("FetchErc20TokenMeta Name err is: %+v", err))
+			continue
+		}
+		return
+	}
+	return
+}
+
+func FetchPoolPrice(urls []string, base string, baseDecimal int, quote string, quoteDecimal int, pool string) (price float64, err error) {
+	var baseAmount *big.Int
+	var quoteAmount *big.Int
+	baseAmount, err = GetTokenBalance(urls, base, pool)
 	if err != nil {
-		errMsg := fmt.Sprintf("TxWaitToSync:bind.WaitMine err: %+v", err)
-		util.Logger().Error(errMsg)
-		return nil, false, err
+		util.Logger().Error(fmt.Sprintf("FetchPoolPrice GetTokenBalance err: %+v", err))
+		return
 	}
 
-	return receipt, receipt.Status == types.ReceiptStatusSuccessful, nil
+	quoteAmount, err = GetTokenBalance(urls, base, pool)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("FetchPoolPrice GetTokenBalance err: %+v", err))
+		return
+	}
+
+	if baseAmount.Uint64() == 0 || quoteAmount.Uint64() == 0 {
+		return
+	}
+
+	q := float64(quoteAmount.Uint64()) / math.Pow10(quoteDecimal)
+	b := float64(baseAmount.Uint64()) / math.Pow10(baseDecimal)
+
+	price = q / b
+	return
 }
