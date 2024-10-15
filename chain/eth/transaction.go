@@ -96,7 +96,7 @@ func TransferETH(urls []string, fromKey string, to string, amount *big.Int) (str
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	gasLimit := uint64(0) // in units
+	gasLimit := uint64(21000) // in units
 
 	for _, url := range urls {
 		client, err := ethclient.Dial(url)
