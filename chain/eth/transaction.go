@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -12,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/shopspring/decimal"
 	"github.com/skytree-lab/go-fundamental/chain/eth/contract"
 	"github.com/skytree-lab/go-fundamental/util"
 )
@@ -249,9 +249,9 @@ func FetchPoolPrice(urls []string, base string, baseDecimal int, quote string, q
 		return
 	}
 
-	q := float64(quoteAmount.Uint64()) / math.Pow10(quoteDecimal)
-	b := float64(baseAmount.Uint64()) / math.Pow10(baseDecimal)
+	q := decimal.NewFromBigInt(quoteAmount, int32(quoteDecimal))
+	b := decimal.NewFromBigInt(baseAmount, int32(baseDecimal))
+	price, _ = q.Div(b).Float64()
 
-	price = q / b
 	return
 }
