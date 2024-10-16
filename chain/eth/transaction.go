@@ -239,7 +239,7 @@ func FetchPoolPrice(urls []string, base string, baseDecimal int, quote string, q
 		return
 	}
 
-	quoteAmount, err = GetTokenBalance(urls, base, pool)
+	quoteAmount, err = GetTokenBalance(urls, quote, pool)
 	if err != nil {
 		util.Logger().Error(fmt.Sprintf("FetchPoolPrice GetTokenBalance err: %+v", err))
 		return
