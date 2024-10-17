@@ -49,6 +49,19 @@ func ConvertFloat64ToTokenAmount(amount float64, decimals int) *big.Int {
 	return result
 }
 
+func ConvertBigIntToFloat64(amount *big.Int, decimals int) float64 {
+	fd := decimal.NewFromBigInt(amount, int32(decimals))
+	f, _ := fd.Float64()
+	return f
+}
+
+func BigIntDiv(amount1 *big.Int, decimals1 int, amount2 *big.Int, decimals2 int) float64 {
+	fd1 := decimal.NewFromBigInt(amount1, int32(decimals1))
+	fd2 := decimal.NewFromBigInt(amount2, int32(decimals2))
+	f, _ := fd2.Div(fd1).Float64()
+	return f
+}
+
 func PadLeft(str, pad string, length int) string {
 	for {
 		str = pad + str
@@ -121,7 +134,7 @@ func RemoveIndex[T any](s []T, index int) []T {
 	return append(ret, s[index+1:]...)
 }
 
-func CreateTransactionOpts(client *ethclient.Client, key *ecdsa.PrivateKey, chainId uint64, caller common.Address) (opts *bind.TransactOpts, err error) {
+func CreateTransactionOpts(client *ethclient.Client, key *ecdsa.PrivateKey, chainId uint64, caller common.Address, amount *big.Int) (opts *bind.TransactOpts, err error) {
 	nonce, err := client.PendingNonceAt(context.Background(), caller)
 	if err != nil {
 		errMsg := fmt.Sprintf("CreateTransactionOpts:client.PendingNonceAt err: %+v", err)
@@ -145,8 +158,13 @@ func CreateTransactionOpts(client *ethclient.Client, key *ecdsa.PrivateKey, chai
 	}
 
 	opts.Nonce = big.NewInt(int64(nonce))
-	opts.Value = big.NewInt(0) // in wei
-	opts.GasLimit = uint64(0)  // in units
+	if amount != nil {
+		opts.Value = amount // in wei
+	} else {
+		opts.Value = big.NewInt(0) // in wei
+	}
+
+	opts.GasLimit = uint64(0) // in units
 	opts.GasPrice = new(big.Int).Mul(gasPrice, big.NewInt(2))
 
 	return opts, nil
