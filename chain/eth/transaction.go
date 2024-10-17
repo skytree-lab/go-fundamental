@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/shopspring/decimal"
 	"github.com/skytree-lab/go-fundamental/chain/eth/contract"
 	"github.com/skytree-lab/go-fundamental/util"
 )
@@ -162,7 +161,7 @@ func TransferErc20Token(urls []string, fromKey string, to string, amount *big.In
 			continue
 		}
 
-		opts, err = util.CreateTransactionOpts(client, privateKey, chainid, common.HexToAddress(addr))
+		opts, err = util.CreateTransactionOpts(client, privateKey, chainid, common.HexToAddress(addr), nil)
 		if err != nil {
 			util.Logger().Error(fmt.Sprintf("TransferErc20Token CreateTransactionOpts err is: %+v", err))
 			continue
@@ -249,9 +248,6 @@ func FetchPoolPrice(urls []string, base string, baseDecimal int, quote string, q
 		return
 	}
 
-	q := decimal.NewFromBigInt(quoteAmount, int32(quoteDecimal))
-	b := decimal.NewFromBigInt(baseAmount, int32(baseDecimal))
-	price, _ = q.Div(b).Float64()
-
+	price = util.BigIntDiv(baseAmount, baseDecimal, quoteAmount, quoteDecimal)
 	return
 }
