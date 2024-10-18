@@ -80,6 +80,89 @@ func GetTokenBalance(urls []string, token string, addr string) (amount *big.Int,
 	return
 }
 
+func GetAllowance(urls []string, token string, owner string, spender string) (amount *big.Int, err error) {
+	tokenAddr := common.HexToAddress(token)
+	ownerAddr := common.HexToAddress(owner)
+	spenderAddr := common.HexToAddress(spender)
+	var client *ethclient.Client
+	var instance *contract.Usdt
+	for _, url := range urls {
+		client, err = ethclient.Dial(url)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("GetAllowance Dial err is: %+v", err))
+			continue
+		}
+		instance, err = contract.NewUsdt(tokenAddr, client)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("GetAllowance NewUsdt err is: %+v", err))
+			continue
+		}
+		amount, err = instance.Allowance(&bind.CallOpts{}, ownerAddr, spenderAddr)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("GetAllowance Allowance err is: %+v", err))
+			continue
+		}
+		return
+	}
+	return
+}
+
+func Approve(urls []string, chainid uint64, token string, ownerkey string, spender string, spend *big.Int) (hash string, succeed bool, err error) {
+	var client *ethclient.Client
+	var erc20 *contract.UsdtTransactor
+	var tx *types.Transaction
+	var opts *bind.TransactOpts
+	tokenAddr := common.HexToAddress(token)
+	privateKey, err := crypto.HexToECDSA(ownerkey)
+	if err != nil {
+		errMsg := fmt.Sprintf("Approve err, reason=[%s]", err)
+		util.Logger().Error(errMsg)
+		return
+	}
+	owner, err := util.PrivateToAddress(ownerkey)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("Approve Dial err is: %+v", err))
+		return
+	}
+
+	for _, url := range urls {
+		client, err = ethclient.Dial(url)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("Approve Dial err is: %+v", err))
+			continue
+		}
+
+		opts, err = util.CreateTransactionOpts(client, privateKey, chainid, common.HexToAddress(owner), nil)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("Approve CreateTransactionOpts err is: %+v", err))
+			continue
+		}
+
+		erc20, err = contract.NewUsdtTransactor(tokenAddr, client)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("Approve NewUsdtTransactor err is: %+v", err))
+			continue
+		}
+
+		tx, err = erc20.Approve(opts, common.HexToAddress(spender), spend)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("Approve Approve err is: %+v", err))
+			continue
+		}
+		_, succeed, err = util.TxWaitToSync(opts.Context, client, tx)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("Approve Approve err is: %+v", err))
+			continue
+		}
+
+		if succeed {
+			hash = tx.Hash().String()
+			return
+		}
+	}
+	return
+}
+
 func TransferETH(urls []string, fromKey string, to string, amount *big.Int) (string, error) {
 	toAddress := common.HexToAddress(to)
 	value := amount
