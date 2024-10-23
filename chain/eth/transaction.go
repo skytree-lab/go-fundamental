@@ -31,7 +31,7 @@ func Parse(urls []string, hash string, addr string) (*types.Transaction, *big.In
 		if tx.To().String() == addr {
 			return tx, tx.Value(), nil
 		}
-		return nil, nil, nil
+		return tx, nil, nil
 	}
 	return nil, nil, nil
 }
