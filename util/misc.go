@@ -49,19 +49,6 @@ func ConvertFloat64ToTokenAmount(amount float64, decimals int) *big.Int {
 	return result
 }
 
-func ConvertBigIntToFloat64(amount *big.Int, decimals int) float64 {
-	fd := decimal.NewFromBigInt(amount, int32(decimals))
-	f, _ := fd.Float64()
-	return f
-}
-
-func BigIntDiv(amount1 *big.Int, decimals1 int, amount2 *big.Int, decimals2 int) float64 {
-	fd1 := decimal.NewFromBigInt(amount1, int32(decimals1))
-	fd2 := decimal.NewFromBigInt(amount2, int32(decimals2))
-	f, _ := fd2.Div(fd1).Float64()
-	return f
-}
-
 func PadLeft(str, pad string, length int) string {
 	for {
 		str = pad + str

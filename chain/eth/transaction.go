@@ -331,6 +331,8 @@ func FetchPoolPrice(urls []string, base string, baseDecimal int, quote string, q
 		return
 	}
 
-	price = util.BigIntDiv(baseAmount, baseDecimal, quoteAmount, quoteDecimal)
+	baseVal := util.ConvertTokenAmountToFloat64(baseAmount.String(), int32(baseDecimal))
+	quoteVal := util.ConvertTokenAmountToFloat64(quoteAmount.String(), int32(quoteDecimal))
+	price = quoteVal / baseVal
 	return
 }
