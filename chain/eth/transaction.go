@@ -15,7 +15,7 @@ import (
 	"github.com/skytree-lab/go-fundamental/util"
 )
 
-func Parse(urls []string, hash string, addr string) (*big.Int, error) {
+func Parse(urls []string, hash string, addr string) (*types.Transaction, *big.Int, error) {
 	txHash := common.HexToHash(hash)
 	for _, url := range urls {
 		client, err := ethclient.Dial(url)
@@ -29,11 +29,11 @@ func Parse(urls []string, hash string, addr string) (*big.Int, error) {
 		}
 
 		if tx.To().String() == addr {
-			return tx.Value(), nil
+			return tx, tx.Value(), nil
 		}
-		return nil, nil
+		return nil, nil, nil
 	}
-	return nil, nil
+	return nil, nil, nil
 }
 
 func GetBalance(urls []string, addr string) (*big.Int, error) {
