@@ -21,3 +21,13 @@ func TestRemoveSlice(t *testing.T) {
 	lpadstr, _ := Pad("71", 64, '0')
 	fmt.Println(lpadstr)
 }
+
+func Test_GetTokenPriceUSDT(t *testing.T) {
+	urlbase := "https://www.okx.com/api/v5/market/index-tickers"
+	base := "sol"
+	quote := "usdt"
+	instid := "instId"
+	price, err := GetTokenPriceUSDT(urlbase, base, quote, instid)
+	fmt.Println(err)
+	fmt.Println(price)
+}

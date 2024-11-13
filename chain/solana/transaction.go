@@ -383,6 +383,28 @@ func TransferSOL(urls []string, wsUrl string, fromKey string, to string, amount 
 	return
 }
 
+func GetSPLTokenTotalSupply(urls []string, pubkeyString string) (value *Value, err error) {
+	var out *rpc.GetTokenSupplyResult
+	for _, url := range urls {
+		rpcClient := rpc.New(url)
+		pubKey := solana.MustPublicKeyFromBase58(pubkeyString)
+		out, err = rpcClient.GetTokenSupply(context.Background(), pubKey, rpc.CommitmentConfirmed)
+		if err != nil || out == nil || out.Value == nil {
+			continue
+		}
+		value = &Value{
+			Amount:         out.Value.Amount,
+			Decimals:       int(out.Value.Decimals),
+			UIAmountString: out.Value.UiAmountString,
+		}
+		if out.Value.UiAmount != nil {
+			value.UIAmount = *out.Value.UiAmount
+		}
+		return
+	}
+	return
+}
+
 func CheckAccount(url string, payer solana.PublicKey, publicKey solana.PublicKey, fromTokenAddr, toTokenAddr string) (map[string]solana.PublicKey, []solana.Instruction, error) {
 	var mints []solana.PublicKey
 	mints = append(mints, solana.MustPublicKeyFromBase58(fromTokenAddr))

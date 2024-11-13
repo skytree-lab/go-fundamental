@@ -129,6 +129,14 @@ func Test_TransferCpTransaction(t *testing.T) {
 	fmt.Println(params)
 }
 
+func Test_GetSPLTokenTotalSupply(t *testing.T) {
+	urls := []string{"https://api.mainnet-beta.solana.com"}
+	token := "FFZoPGvkgUqPCHyvKxyfeJQz5PqbRnWM2tS9BjWcpump"
+	value, err := GetSPLTokenTotalSupply(urls, token)
+	fmt.Println(value)
+	fmt.Println(err)
+}
+
 func Test_TransferSOL(t *testing.T) {
 	urls := []string{"https://api.mainnet-beta.solana.com"}
 	wsurl := "wss://api.mainnet-beta.solana.com"
