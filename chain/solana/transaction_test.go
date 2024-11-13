@@ -137,6 +137,14 @@ func Test_GetSPLTokenTotalSupply(t *testing.T) {
 	fmt.Println(err)
 }
 
+func Test_GetSPLTokenLargestAccount(t *testing.T) {
+	urls := []string{"https://api.mainnet-beta.solana.com"}
+	token := "88WiNYkPTFvY1UwdoYo89C2JMRAJByTKPabzhJxpcq5q"
+	count, err := GetSPLTokenTopAccounts(urls, token)
+	fmt.Println(count)
+	fmt.Println(err)
+}
+
 func Test_TransferSOL(t *testing.T) {
 	urls := []string{"https://api.mainnet-beta.solana.com"}
 	wsurl := "wss://api.mainnet-beta.solana.com"

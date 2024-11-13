@@ -245,9 +245,9 @@ type TickerData struct {
 	Ts      string `json:"ts"`
 }
 
-func GetTokenPriceUSDT(okxurl string, base, quote string, instid string) (float64, error) {
+func GetTokenPriceUSDT(okxurl string, base, quote string) (float64, error) {
 	client := GetHTTPClient()
-	url := okxurl + "?" + instid + "=" + strings.ToUpper(base) + "-" + strings.ToUpper(quote)
+	url := okxurl + strings.ToUpper(base) + "-" + strings.ToUpper(quote)
 	headers := make(map[string]string)
 	headers["Content-Type"] = " application/json"
 	headers["Accept"] = " application/json"

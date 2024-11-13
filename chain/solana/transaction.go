@@ -405,6 +405,21 @@ func GetSPLTokenTotalSupply(urls []string, pubkeyString string) (value *Value, e
 	return
 }
 
+func GetSPLTokenTopAccounts(urls []string, token string) (count int, err error) {
+	var out *rpc.GetTokenLargestAccountsResult
+	for _, url := range urls {
+		rpcClient := rpc.New(url)
+		pubKey := solana.MustPublicKeyFromBase58(token)
+		out, err = rpcClient.GetTokenLargestAccounts(context.Background(), pubKey, rpc.CommitmentConfirmed)
+		if err != nil || out == nil || len(out.Value) == 0 {
+			continue
+		}
+		count = len(out.Value)
+		return
+	}
+	return
+}
+
 func CheckAccount(url string, payer solana.PublicKey, publicKey solana.PublicKey, fromTokenAddr, toTokenAddr string) (map[string]solana.PublicKey, []solana.Instruction, error) {
 	var mints []solana.PublicKey
 	mints = append(mints, solana.MustPublicKeyFromBase58(fromTokenAddr))
