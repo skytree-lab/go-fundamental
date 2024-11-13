@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/big"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/snowflake"
@@ -226,4 +227,45 @@ func PadChar(s string, n int, r rune) (string, error) {
 		return s, nil
 	}
 	return strings.Repeat(string(r), n-len(s)) + s, nil
+}
+
+type Ticker struct {
+	Code string        `json:"code"`
+	Msg  string        `json:"msg"`
+	Data []*TickerData `json:"data"`
+}
+type TickerData struct {
+	InstID  string `json:"instId"`
+	IdxPx   string `json:"idxPx"`
+	High24H string `json:"high24h"`
+	SodUtc0 string `json:"sodUtc0"`
+	Open24H string `json:"open24h"`
+	Low24H  string `json:"low24h"`
+	SodUtc8 string `json:"sodUtc8"`
+	Ts      string `json:"ts"`
+}
+
+func GetTokenPriceUSDT(okxurl string, base, quote string, instid string) (float64, error) {
+	client := GetHTTPClient()
+	url := okxurl + "?" + instid + "=" + strings.ToUpper(base) + "-" + strings.ToUpper(quote)
+	headers := make(map[string]string)
+	headers["Content-Type"] = " application/json"
+	headers["Accept"] = " application/json"
+	data, err := HTTPReq("GET", url, client, nil, headers)
+	if err != nil {
+		return 0, err
+	}
+	ticker := &Ticker{}
+	err = json.Unmarshal(data, ticker)
+	if err != nil {
+		return 0, err
+	}
+	if len(ticker.Data) == 0 {
+		return 0, nil
+	}
+	price, err := strconv.ParseFloat(ticker.Data[0].IdxPx, 64)
+	if err != nil {
+		return 0, err
+	}
+	return price, nil
 }
