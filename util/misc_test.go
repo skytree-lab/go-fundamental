@@ -23,11 +23,10 @@ func TestRemoveSlice(t *testing.T) {
 }
 
 func Test_GetTokenPriceUSDT(t *testing.T) {
-	urlbase := "https://www.okx.com/api/v5/market/index-tickers"
+	urlbase := "https://www.okx.com/api/v5/market/index-tickers?instId="
 	base := "sol"
 	quote := "usdt"
-	instid := "instId"
-	price, err := GetTokenPriceUSDT(urlbase, base, quote, instid)
+	price, err := GetTokenPriceUSDT(urlbase, base, quote)
 	fmt.Println(err)
 	fmt.Println(price)
 }
