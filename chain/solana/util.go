@@ -8,6 +8,25 @@ var (
 	NativeSOL                       = "11111111111111111111111111111111"
 )
 
+type LatestBlockhashParams struct {
+	Commitment string `json:"commitment"`
+}
+
+type LastestBlockHashContext struct {
+	ApiVersion string `json:"apiVersion"`
+	Slot       int64  `json:"slot"`
+}
+
+type LastestBlockHashValue struct {
+	Blockhash            solana.Hash `json:"blockhash"`
+	LastValidBlockHeight int64       `json:"lastValidBlockHeight"`
+}
+
+type LastestBlockHashResult struct {
+	Context *LastestBlockHashContext `json:"context"`
+	Value   *LastestBlockHashValue   `json:"value"`
+}
+
 type PoolTokenPairAccount struct {
 	BaseMint      solana.PublicKey
 	BaseDecimals  int

@@ -108,6 +108,13 @@ func Test_TransferTransaction(t *testing.T) {
 	fmt.Println(params)
 }
 
+func Test_GetLatestBlockhash(t *testing.T) {
+	urls := "https://api.mainnet-beta.solana.com"
+	count, err := GetLatestBlockhash(urls)
+	fmt.Println(count)
+	fmt.Println(err)
+}
+
 func Test_TransferCpTransaction(t *testing.T) {
 	url := "https://solana-mainnet.g.alchemy.com/v2/alch-demo"
 	// sig := "2PSzrxAmn7fHtRhNXK6RCNFzFR2uvN2CpY2T8tsnLJaFiiBHVuqtmekukr7zqDNCekj9TN5jhU4zq32RiTbgosPZ"
@@ -150,7 +157,6 @@ func Test_TransferSOL(t *testing.T) {
 	wsurl := "wss://api.mainnet-beta.solana.com"
 	from := ""
 	to := "6huu25nWzFtBWPMQmWRzKLD4Wtfq11SSjZTU6oitLqdz"
-
 	acc := solana.MustPrivateKeyFromBase58(from)
 	fmt.Println(acc.PublicKey().String())
 	sig, err := TransferSOL(urls, wsurl, from, to, 5000000)
