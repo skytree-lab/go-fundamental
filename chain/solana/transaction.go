@@ -25,7 +25,6 @@ func GetTransaction(urls []string, signature string) (out *rpc.GetTransactionRes
 		Encoding                       string `json:"encoding"`
 		MaxSupportedTransactionVersion int    `json:"maxSupportedTransactionVersion"`
 	}
-
 	var resp *jsonrpc.RPCResponse
 	for _, url := range urls {
 		rpcClient := jsonrpc.NewClient(url)
@@ -47,6 +46,29 @@ func GetTransaction(urls []string, signature string) (out *rpc.GetTransactionRes
 		return
 	}
 
+	return
+}
+
+func GetLatestBlockhash(url string) (out *LastestBlockHashResult, err error) {
+	var resp *jsonrpc.RPCResponse
+	rpcClient := jsonrpc.NewClient(url)
+	var params []*LatestBlockhashParams
+	params = append(params, &LatestBlockhashParams{Commitment: "finalized"})
+	resp, err = rpcClient.Call(context.Background(), "getLatestBlockhash", params)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("GetLastestBlockHash err:%+v", err))
+		return
+	}
+
+	err = resp.GetObject(&out)
+	if err != nil {
+		util.Logger().Error(fmt.Sprintf("GetLastestBlockHash err:%+v", err))
+		return
+	}
+
+	if out == nil {
+		return
+	}
 	return
 }
 
@@ -248,8 +270,8 @@ query MyQuery {
 	return nil, fmt.Errorf("cann't pool info")
 }
 
-func BuildTransacion(ctx context.Context, clientRPC *rpc.Client, signers []solana.PrivateKey, instrs ...solana.Instruction) (*solana.Transaction, error) {
-	recent, err := clientRPC.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
+func BuildTransacion(url string, signers []solana.PrivateKey, instrs ...solana.Instruction) (*solana.Transaction, error) {
+	recent, err := GetLatestBlockhash(url)
 	if err != nil {
 		return nil, err
 	}
@@ -281,75 +303,81 @@ func BuildTransacion(ctx context.Context, clientRPC *rpc.Client, signers []solan
 
 func ExecuteInstructions(
 	ctx context.Context,
-	clientRPC *rpc.Client,
+	urls []string,
 	signers []solana.PrivateKey,
 	instrs ...solana.Instruction,
 ) (string, error) {
-	tx, err := BuildTransacion(ctx, clientRPC, signers, instrs...)
-	if err != nil {
-		return "", err
+	for _, url := range urls {
+		tx, err := BuildTransacion(url, signers, instrs...)
+		if err != nil {
+			continue
+		}
+		clientRPC := rpc.New(url)
+		sig, err := clientRPC.SendTransactionWithOpts(
+			ctx,
+			tx,
+			rpc.TransactionOpts{
+				SkipPreflight:       false,
+				PreflightCommitment: rpc.CommitmentFinalized,
+			},
+		)
+		if err != nil {
+			continue
+		}
+		return sig.String(), nil
 	}
-
-	sig, err := clientRPC.SendTransactionWithOpts(
-		ctx,
-		tx,
-		rpc.TransactionOpts{
-			SkipPreflight:       false,
-			PreflightCommitment: rpc.CommitmentFinalized,
-		},
-	)
-	if err != nil {
-		return "", err
-	}
-	return sig.String(), nil
+	return "", nil
 }
 
 func ExecuteInstructionsAndWaitConfirm(
 	ctx context.Context,
-	clientRPC *rpc.Client,
+	urls []string,
 	RPCWs string,
 	signers []solana.PrivateKey,
 	instrs ...solana.Instruction,
 ) (string, error) {
-	tx, err := BuildTransacion(ctx, clientRPC, signers, instrs...)
-	if err != nil {
-		return "", err
-	}
+	for _, url := range urls {
+		tx, err := BuildTransacion(url, signers, instrs...)
+		if err != nil {
+			continue
+		}
 
-	clientWS, err := ws.Connect(ctx, RPCWs)
-	if err != nil {
-		return "", err
-	}
+		clientWS, err := ws.Connect(ctx, RPCWs)
+		if err != nil {
+			continue
+		}
 
-	sig, err := confirm.SendAndConfirmTransaction(
-		ctx,
-		clientRPC,
-		clientWS,
-		tx,
-	)
-	if err != nil {
-		return "", err
-	}
+		clientRPC := rpc.New(url)
+		sig, err := confirm.SendAndConfirmTransaction(
+			ctx,
+			clientRPC,
+			clientWS,
+			tx,
+		)
+		if err != nil {
+			continue
+		}
 
-	return sig.String(), nil
+		return sig.String(), nil
+	}
+	return "", nil
 }
 
 func TransferSOL(urls []string, wsUrl string, fromKey string, to string, amount uint64) (sig string, err error) {
 	for _, url := range urls {
+		accFrom := solana.MustPrivateKeyFromBase58(fromKey)
+		accTo := solana.MustPublicKeyFromBase58(to)
+
+		recent, err := GetLatestBlockhash(url)
+		if err != nil {
+			continue
+		}
+
 		rpcClient := rpc.New(url)
 		wsClient, err := ws.Connect(context.Background(), wsUrl)
 		if err != nil {
 			continue
 		}
-
-		accFrom := solana.MustPrivateKeyFromBase58(fromKey)
-		accTo := solana.MustPublicKeyFromBase58(to)
-
-		recent, err := rpcClient.GetRecentBlockhash(context.TODO(), rpc.CommitmentFinalized)
-		if err != nil {
-			continue
-		}
-
 		tx, err := solana.NewTransaction(
 			[]solana.Instruction{
 				system.NewTransferInstruction(amount, accFrom.PublicKey(), accTo).Build(),
@@ -547,7 +575,7 @@ func TransferToken(urls []string, wsUrl string, amount uint64, senderSPLTokenAcc
 		}
 
 		instructions = append(instructions, transfer)
-		recent, err := rpcClient.GetRecentBlockhash(context.TODO(), rpc.CommitmentFinalized)
+		recent, err := GetLatestBlockhash(url)
 		if err != nil {
 			continue
 		}
