@@ -303,64 +303,55 @@ func BuildTransacion(url string, signers []solana.PrivateKey, instrs ...solana.I
 
 func ExecuteInstructions(
 	ctx context.Context,
-	urls []string,
+	url string,
 	signers []solana.PrivateKey,
 	instrs ...solana.Instruction,
 ) (string, error) {
-	for _, url := range urls {
-		tx, err := BuildTransacion(url, signers, instrs...)
-		if err != nil {
-			continue
-		}
-		clientRPC := rpc.New(url)
-		sig, err := clientRPC.SendTransactionWithOpts(
-			ctx,
-			tx,
-			rpc.TransactionOpts{
-				SkipPreflight:       false,
-				PreflightCommitment: rpc.CommitmentFinalized,
-			},
-		)
-		if err != nil {
-			continue
-		}
-		return sig.String(), nil
+	tx, err := BuildTransacion(url, signers, instrs...)
+	if err != nil {
+		return "", nil
 	}
-	return "", nil
+	clientRPC := rpc.New(url)
+	sig, err := clientRPC.SendTransactionWithOpts(
+		ctx,
+		tx,
+		rpc.TransactionOpts{
+			SkipPreflight:       false,
+			PreflightCommitment: rpc.CommitmentFinalized,
+		},
+	)
+	if err != nil {
+		return "", nil
+	}
+	return sig.String(), nil
 }
 
 func ExecuteInstructionsAndWaitConfirm(
 	ctx context.Context,
-	urls []string,
+	url string,
 	RPCWs string,
 	signers []solana.PrivateKey,
 	instrs ...solana.Instruction,
 ) (string, error) {
-	for _, url := range urls {
-		tx, err := BuildTransacion(url, signers, instrs...)
-		if err != nil {
-			continue
-		}
-
-		clientWS, err := ws.Connect(ctx, RPCWs)
-		if err != nil {
-			continue
-		}
-
-		clientRPC := rpc.New(url)
-		sig, err := confirm.SendAndConfirmTransaction(
-			ctx,
-			clientRPC,
-			clientWS,
-			tx,
-		)
-		if err != nil {
-			continue
-		}
-
-		return sig.String(), nil
+	tx, err := BuildTransacion(url, signers, instrs...)
+	if err != nil {
+		return "", err
 	}
-	return "", nil
+	clientWS, err := ws.Connect(ctx, RPCWs)
+	if err != nil {
+		return "", err
+	}
+	clientRPC := rpc.New(url)
+	sig, err := confirm.SendAndConfirmTransaction(
+		ctx,
+		clientRPC,
+		clientWS,
+		tx,
+	)
+	if err != nil {
+		return "", nil
+	}
+	return sig.String(), nil
 }
 
 func TransferSOL(urls []string, wsUrl string, fromKey string, to string, amount uint64) (sig string, err error) {
