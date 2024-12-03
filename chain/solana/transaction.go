@@ -30,22 +30,17 @@ func GetTransaction(urls []string, signature string) (out *rpc.GetTransactionRes
 		rpcClient := jsonrpc.NewClient(url)
 		resp, err = rpcClient.Call(context.Background(), "getTransaction", signature, &Tx{Commitment: "confirmed", Encoding: "json", MaxSupportedTransactionVersion: 0})
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("GetTransaction err:%+v", err))
 			continue
 		}
-
 		err = resp.GetObject(&out)
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("GetTransaction err:%+v", err))
 			continue
 		}
-
 		if out == nil {
 			continue
 		}
 		return
 	}
-
 	return
 }
 
@@ -56,16 +51,12 @@ func GetLatestBlockhash(url string) (out *LastestBlockHashResult, err error) {
 	params = append(params, &LatestBlockhashParams{Commitment: "finalized"})
 	resp, err = rpcClient.Call(context.Background(), "getLatestBlockhash", params)
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("GetLastestBlockHash err:%+v", err))
 		return
 	}
-
 	err = resp.GetObject(&out)
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("GetLastestBlockHash err:%+v", err))
 		return
 	}
-
 	if out == nil {
 		return
 	}
@@ -77,22 +68,16 @@ func GetBalance(urls []string, pubkey string) (uint64, error) {
 		rpcClient := jsonrpc.NewClient(url)
 		resp, err := rpcClient.Call(context.Background(), "getBalance", pubkey)
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("getBalance err:%+v", err))
 			continue
 		}
-
 		balance := &GetBalanceResponse{}
 		err = resp.GetObject(&balance)
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("GetBalance err:%+v", err))
 			continue
 		}
-
 		if balance == nil {
-			util.Logger().Error("balance type err")
 			continue
 		}
-
 		return balance.Value, nil
 	}
 	return 0, fmt.Errorf("getBalance, pubkey: %s", pubkey)
@@ -103,18 +88,15 @@ func GetTokenAccountBalance(urls []string, pubkey string) (string, float64, erro
 		rpcClient := jsonrpc.NewClient(url)
 		resp, err := rpcClient.Call(context.Background(), "getTokenAccountBalance", pubkey)
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("GetTokenAccountBalance err:%+v", err))
 			continue
 		}
 		var balance *TokenBalance
 		err = resp.GetObject(&balance)
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("GetTokenAccountBalance err:%+v", err))
 			continue
 		}
 
 		if balance == nil {
-			util.Logger().Error("balance type err")
 			continue
 		}
 
@@ -142,24 +124,17 @@ func GetTokenAccountsByOwner(urls []string, pubkey string, mint string, programi
 		} else if programid != "" {
 			resp, err = rpcClient.Call(context.Background(), "getTokenAccountsByOwner", pubkey, pro, encode)
 		}
-
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("GetTokenAccountsByOwner err:%+v", err))
 			continue
 		}
-
 		var response *GetTokenAccountsByOwnerResponse
 		err = resp.GetObject(&response)
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("GetTokenAccountsByOwner err:%+v", err))
 			continue
 		}
-
 		if response == nil {
-			util.Logger().Error("response type err")
 			continue
 		}
-
 		return response, nil
 	}
 	return nil, fmt.Errorf("getTokenAccountsByOwner err, pubkey:%s, mint:%s", pubkey, mint)
@@ -173,12 +148,10 @@ func GetTokenMint(urls []string, mint string) (tokenmint *token.Mint, err error)
 		client := rpc.New(url)
 		resp, err = client.GetAccountInfo(context.TODO(), pubKey)
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("GetAccountInfo err:%+v", err))
 			continue
 		}
 		err = bin.NewBinDecoder(resp.Value.Data.GetBinary()).Decode(tokenmint)
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("GetAccountInfo err:%+v", err))
 			continue
 		}
 		return
@@ -189,7 +162,6 @@ func GetTokenMint(urls []string, mint string) (tokenmint *token.Mint, err error)
 func GetTokenDecimal(urls []string, mint string) (decimals int, err error) {
 	tokenmint, err := GetTokenMint(urls, mint)
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("GetTokenDecimal err:%+v", err))
 		return
 	}
 	decimals = int(tokenmint.Decimals)
@@ -207,22 +179,16 @@ func GetTokenMeta(url string, mint string, keys []string) (out *Result, err erro
 		header["Accept"] = " application/json"
 		resp, err := util.HTTPReq("GET", u, client, nil, header)
 		if err != nil {
-			util.Logger().Info(fmt.Sprintf("GetTokeMeta err:%+v", err))
 			continue
 		}
-
 		var meta MetaResponse
 		err = json.Unmarshal(resp, &meta)
 		if err != nil {
-			util.Logger().Info(fmt.Sprintf("GetTokeMeta err:%+v", err))
 			continue
 		}
-
 		if !meta.Success {
-			util.Logger().Info(fmt.Sprintf("GetTokeMeta err:%+v", mint))
 			continue
 		}
-
 		return meta.Result, nil
 	}
 	return nil, fmt.Errorf("cann't fetch meta")
@@ -261,10 +227,8 @@ query MyQuery {
 		var resp PoolInfoResponse
 		err := client.Run(context.Background(), req, &resp)
 		if err != nil {
-			util.Logger().Info(fmt.Sprintf("graphql run err:%v", err))
 			continue
 		}
-
 		return &resp, nil
 	}
 	return nil, fmt.Errorf("cann't pool info")
@@ -275,7 +239,6 @@ func BuildTransacion(url string, signers []solana.PrivateKey, instrs ...solana.I
 	if err != nil {
 		return nil, err
 	}
-
 	tx, err := solana.NewTransaction(
 		instrs,
 		recent.Value.Blockhash,
@@ -284,7 +247,6 @@ func BuildTransacion(url string, signers []solana.PrivateKey, instrs ...solana.I
 	if err != nil {
 		return nil, err
 	}
-
 	_, err = tx.Sign(
 		func(key solana.PublicKey) *solana.PrivateKey {
 			for _, payer := range signers {
@@ -358,12 +320,10 @@ func TransferSOL(urls []string, wsUrl string, fromKey string, to string, amount 
 	for _, url := range urls {
 		accFrom := solana.MustPrivateKeyFromBase58(fromKey)
 		accTo := solana.MustPublicKeyFromBase58(to)
-
 		recent, err := GetLatestBlockhash(url)
 		if err != nil {
 			continue
 		}
-
 		rpcClient := rpc.New(url)
 		wsClient, err := ws.Connect(context.Background(), wsUrl)
 		if err != nil {
@@ -379,7 +339,6 @@ func TransferSOL(urls []string, wsUrl string, fromKey string, to string, amount 
 		if err != nil {
 			continue
 		}
-
 		_, err = tx.Sign(func(key solana.PublicKey) *solana.PrivateKey {
 			if accFrom.PublicKey().Equals(key) {
 				return &accFrom
@@ -445,13 +404,10 @@ func CheckAccount(url string, payer solana.PublicKey, publicKey solana.PublicKey
 	if fromTokenAddr != toTokenAddr {
 		mints = append(mints, solana.MustPublicKeyFromBase58(toTokenAddr))
 	}
-
 	existingAccounts, missingAccounts, err := GetTokenAccountsFromMints(context.Background(), url, publicKey, mints...)
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("GetTokenAccountsFromMints err:%v", err))
 		return nil, nil, err
 	}
-
 	instrs := []solana.Instruction{}
 	if len(missingAccounts) != 0 {
 		for mint := range missingAccounts {
@@ -478,7 +434,6 @@ func CheckAccount(url string, payer solana.PublicKey, publicKey solana.PublicKey
 
 func GetTokenAccountsFromMints(ctx context.Context, url string, owner solana.PublicKey,
 	mints ...solana.PublicKey) (map[string]solana.PublicKey, map[string]solana.PublicKey, error) {
-
 	duplicates := map[string]bool{}
 	tokenAccounts := []solana.PublicKey{}
 	tokenAccountInfos := []TokenAccountInfo{}
@@ -489,7 +444,6 @@ func GetTokenAccountsFromMints(ctx context.Context, url string, owner solana.Pub
 		duplicates[m.String()] = true
 		a, _, err := solana.FindAssociatedTokenAddress(owner, m)
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("FindAssociatedTokenAddress err:%v", err))
 			return nil, nil, err
 		}
 		// Use owner address for NativeSOL mint
@@ -504,7 +458,6 @@ func GetTokenAccountsFromMints(ctx context.Context, url string, owner solana.Pub
 	}
 	res, err := getMultiAccounts(url, tokenAccounts)
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("getMultiAccounts err:%v", err))
 		return nil, nil, err
 	}
 
@@ -523,12 +476,10 @@ func GetTokenAccountsFromMints(ctx context.Context, url string, owner solana.Pub
 		var ta token.Account
 		err = bin.NewBinDecoder(a.Data.GetBinary()).Decode(&ta)
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("NewBinDecoder err:%v", err))
 			return nil, nil, err
 		}
 		existingAccounts[tai.Mint.String()] = tai.Account
 	}
-
 	return existingAccounts, missingAccounts, nil
 }
 
@@ -539,20 +490,16 @@ func TransferToken(urls []string, wsUrl string, amount uint64, senderSPLTokenAcc
 		if err != nil {
 			continue
 		}
-
 		existingAccounts, instrs, err := CheckAccount(url, sender.PublicKey(), recipient, mint.String(), mint.String())
 		if err != nil {
 			continue
 		}
-
 		var instructions []solana.Instruction
 		instructions = append(instructions, instrs...)
-
 		recipientSPLTokenAccount, ok := existingAccounts[mint.String()]
 		if !ok {
 			continue
 		}
-
 		var signaturers []solana.PublicKey
 		signaturers = append(signaturers, sender.PublicKey())
 
@@ -604,7 +551,6 @@ func getMultiAccounts(url string, accs []solana.PublicKey) (out *rpc.GetMultiple
 	if err != nil {
 		return
 	}
-
 	err = resp.GetObject(&out)
 	if err != nil {
 		return
@@ -624,7 +570,6 @@ func GetMultiAccounts(urls []string, accounts []*PoolTokenPairAccount) (resp *rp
 		if err != nil {
 			continue
 		}
-
 		if resp == nil {
 			continue
 		}
