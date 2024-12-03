@@ -8,12 +8,10 @@ import (
 	"github.com/gagliardetto/solana-go/programs/system"
 	"github.com/gagliardetto/solana-go/programs/token"
 	"github.com/gagliardetto/solana-go/rpc"
-	"github.com/skytree-lab/go-fundamental/util"
 )
 
 func ParseTransferSOLInstructionParam(out *rpc.GetTransactionResult, urls []string) (params []*TransferSOLInstructionParam, succeed bool, err error) {
 	if out == nil || out.Transaction == nil || out.Meta == nil {
-		util.Logger().Error("out GetTransaction nil")
 		return
 	}
 
@@ -25,19 +23,16 @@ func ParseTransferSOLInstructionParam(out *rpc.GetTransactionResult, urls []stri
 
 	tx, err := out.Transaction.GetTransaction()
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("out GetTransaction err:%v", err))
 		return
 	}
 
 	err = ProcessTransactionWithAddressLookups(tx, urls)
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("parse err:%v", err))
 		return
 	}
 
 	accoountKeys, err := tx.Message.GetAllKeys()
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("parse err:%v", err))
 		return
 	}
 
@@ -46,38 +41,30 @@ func ParseTransferSOLInstructionParam(out *rpc.GetTransactionResult, urls []stri
 		if len(datas) < 12 {
 			continue
 		}
-
 		instype := bin.LE.Uint32(datas[0:4])
 		if instype != system.Instruction_Transfer {
 			continue
 		}
-
 		if len(accoountKeys) <= int(instruction.ProgramIDIndex) {
 			continue
 		}
-
 		if accoountKeys[instruction.ProgramIDIndex] != solana.SystemProgramID {
 			continue
 		}
-
 		sourceIdx := instruction.Accounts[0]
 		destIdx := instruction.Accounts[1]
-
 		param := &TransferSOLInstructionParam{
 			Source:      accoountKeys[sourceIdx].String(),
 			Destination: accoountKeys[destIdx].String(),
 			Amount:      bin.LE.Uint64(datas[4:12]),
 		}
-
 		params = append(params, param)
 	}
-
 	return
 }
 
 func ParseRaydiumSwapInstructionParam(out *rpc.GetTransactionResult, urls []string) (param *RaydiumSwapInstructionParam, succeed bool, err error) {
 	if out == nil || out.Transaction == nil || out.Meta == nil {
-		util.Logger().Error("out GetTransaction nil")
 		return
 	}
 
@@ -86,22 +73,18 @@ func ParseRaydiumSwapInstructionParam(out *rpc.GetTransactionResult, urls []stri
 	} else {
 		succeed = false
 	}
-
 	tx, err := out.Transaction.GetTransaction()
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("out GetTransaction err:%v", err))
 		return
 	}
 
 	err = ProcessTransactionWithAddressLookups(tx, urls)
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("parse err:%v", err))
 		return
 	}
 
 	accoountKeys, err := tx.Message.GetAllKeys()
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("parse err:%v", err))
 		return
 	}
 
@@ -111,20 +94,16 @@ func ParseRaydiumSwapInstructionParam(out *rpc.GetTransactionResult, urls []stri
 		if len(datas) < 17 {
 			continue
 		}
-
 		instype := uint8(datas[0])
 		if instype != 9 {
 			continue
 		}
-
 		if len(accoountKeys) <= int(instruction.ProgramIDIndex) {
 			continue
 		}
-
 		if accoountKeys[instruction.ProgramIDIndex] != RaydiumLiquidityPoolv4ProgramID {
 			continue
 		}
-
 		userSourceIdx := instruction.Accounts[15]
 		userDestinationIdx := instruction.Accounts[16]
 
@@ -184,7 +163,6 @@ func ParseRaydiumSwapInstructionParam(out *rpc.GetTransactionResult, urls []stri
 
 func ParseRaydiumCPSwapInstructionParam(out *rpc.GetTransactionResult, urls []string) (param *RaydiumSwapInstructionParam, succeed bool, err error) {
 	if out == nil || out.Transaction == nil || out.Meta == nil {
-		util.Logger().Error("out GetTransaction nil")
 		return
 	}
 
@@ -196,19 +174,16 @@ func ParseRaydiumCPSwapInstructionParam(out *rpc.GetTransactionResult, urls []st
 
 	tx, err := out.Transaction.GetTransaction()
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("out GetTransaction err:%v", err))
 		return
 	}
 
 	err = ProcessTransactionWithAddressLookups(tx, urls)
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("parse err:%v", err))
 		return
 	}
 
 	accoountKeys, err := tx.Message.GetAllKeys()
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("parse err:%v", err))
 		return
 	}
 
@@ -218,20 +193,16 @@ func ParseRaydiumCPSwapInstructionParam(out *rpc.GetTransactionResult, urls []st
 		if len(datas) < 24 {
 			continue
 		}
-
 		insType := bin.LE.Uint64(datas[0:8])
 		if insType != uint64(16011174931058048655) {
 			continue
 		}
-
 		if len(accoountKeys) <= int(instruction.ProgramIDIndex) {
 			continue
 		}
-
 		if accoountKeys[instruction.ProgramIDIndex] != RaydiumCpmmPoolProgramID {
 			continue
 		}
-
 		userSourceIdx := instruction.Accounts[4]
 		userDestinationIdx := instruction.Accounts[5]
 
@@ -239,20 +210,16 @@ func ParseRaydiumCPSwapInstructionParam(out *rpc.GetTransactionResult, urls []st
 			if inner.Index != uint16(idx) {
 				continue
 			}
-
 			for _, innerInstruction := range inner.Instructions {
 				if len(accoountKeys) <= int(innerInstruction.ProgramIDIndex) {
 					continue
 				}
-
 				if accoountKeys[innerInstruction.ProgramIDIndex] != solana.TokenProgramID {
 					continue
 				}
-
 				if len(innerInstruction.Accounts) != 4 {
 					continue
 				}
-
 				dataBytes := []byte(innerInstruction.Data)
 				if len(dataBytes) != 10 {
 					continue
@@ -291,7 +258,6 @@ func ParseRaydiumCPSwapInstructionParam(out *rpc.GetTransactionResult, urls []st
 
 func ParseRaydiumCpSwapInstructionParam(out *rpc.GetTransactionResult, urls []string) (param *RaydiumSwapInstructionParam, succeed bool, err error) {
 	if out == nil || out.Transaction == nil || out.Meta == nil {
-		util.Logger().Error("out GetTransaction nil")
 		return
 	}
 
@@ -303,24 +269,21 @@ func ParseRaydiumCpSwapInstructionParam(out *rpc.GetTransactionResult, urls []st
 
 	tx, err := out.Transaction.GetTransaction()
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("out GetTransaction err:%v", err))
 		return
 	}
 
 	err = ProcessTransactionWithAddressLookups(tx, urls)
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("parse err:%v", err))
 		return
 	}
 
 	accoountKeys, err := tx.Message.GetAllKeys()
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("parse err:%v", err))
 		return
 	}
 
 	for _, instruction := range tx.Message.Instructions {
-		if accoountKeys[instruction.ProgramIDIndex].String() != "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C" {
+		if accoountKeys[instruction.ProgramIDIndex].String() != RaydiumCpmmPoolProgramID.String() {
 			continue
 		}
 

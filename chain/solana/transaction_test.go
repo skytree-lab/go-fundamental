@@ -46,7 +46,7 @@ func Test_GettokenAccountBalance(t *testing.T) {
 }
 
 func Test_GetBalance(t *testing.T) {
-	url := "https://solana-mainnet.g.alchemy.com/v2/alch-demo"
+	url := "https://solana-mainnet.g.alchemy.com/v2/uWImZKfGu7osFb7E5VQVFWSbZWa9pvjO"
 	pubkey := "6huu25nWzFtBWPMQmWRzKLD4Wtfq11SSjZTU6oitLqdz"
 	b, err := GetBalance([]string{url}, pubkey)
 	if err != nil {
