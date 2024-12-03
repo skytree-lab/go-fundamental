@@ -398,16 +398,22 @@ func GetSPLTokenTopAccounts(urls []string, token string) (count int, err error) 
 	return
 }
 
-func CheckAccount(url string, payer solana.PublicKey, publicKey solana.PublicKey, fromTokenAddr, toTokenAddr string) (map[string]solana.PublicKey, []solana.Instruction, error) {
+func CheckAccount(urls []string, payer solana.PublicKey, publicKey solana.PublicKey, fromTokenAddr, toTokenAddr string) (map[string]solana.PublicKey, []solana.Instruction, error) {
 	var mints []solana.PublicKey
 	mints = append(mints, solana.MustPublicKeyFromBase58(fromTokenAddr))
 	if fromTokenAddr != toTokenAddr {
 		mints = append(mints, solana.MustPublicKeyFromBase58(toTokenAddr))
 	}
-	existingAccounts, missingAccounts, err := GetTokenAccountsFromMints(context.Background(), url, publicKey, mints...)
-	if err != nil {
-		return nil, nil, err
+	var existingAccounts map[string]solana.PublicKey
+	var missingAccounts map[string]solana.PublicKey
+	var err error
+	for _, url := range urls {
+		existingAccounts, missingAccounts, err = GetTokenAccountsFromMints(context.Background(), url, publicKey, mints...)
+		if err != nil {
+			continue
+		}
 	}
+
 	instrs := []solana.Instruction{}
 	if len(missingAccounts) != 0 {
 		for mint := range missingAccounts {
@@ -484,35 +490,34 @@ func GetTokenAccountsFromMints(ctx context.Context, url string, owner solana.Pub
 }
 
 func TransferToken(urls []string, wsUrl string, amount uint64, senderSPLTokenAccount, mint, recipient solana.PublicKey, sender *solana.PrivateKey) (sig string, err error) {
+	existingAccounts, instrs, err := CheckAccount(urls, sender.PublicKey(), recipient, mint.String(), mint.String())
+	if err != nil {
+		return
+	}
+	var instructions []solana.Instruction
+	instructions = append(instructions, instrs...)
+	recipientSPLTokenAccount, ok := existingAccounts[mint.String()]
+	if !ok {
+		return
+	}
+	var signaturers []solana.PublicKey
+	signaturers = append(signaturers, sender.PublicKey())
+
+	transfer, err := token.NewTransferInstruction(amount,
+		senderSPLTokenAccount,
+		recipientSPLTokenAccount,
+		sender.PublicKey(),
+		signaturers).ValidateAndBuild()
+	if err != nil {
+		return
+	}
+	wsClient, err := ws.Connect(context.Background(), wsUrl)
+	if err != nil {
+		return
+	}
+	instructions = append(instructions, transfer)
 	for _, url := range urls {
 		rpcClient := rpc.New(url)
-		wsClient, err := ws.Connect(context.Background(), wsUrl)
-		if err != nil {
-			continue
-		}
-		existingAccounts, instrs, err := CheckAccount(url, sender.PublicKey(), recipient, mint.String(), mint.String())
-		if err != nil {
-			continue
-		}
-		var instructions []solana.Instruction
-		instructions = append(instructions, instrs...)
-		recipientSPLTokenAccount, ok := existingAccounts[mint.String()]
-		if !ok {
-			continue
-		}
-		var signaturers []solana.PublicKey
-		signaturers = append(signaturers, sender.PublicKey())
-
-		transfer, err := token.NewTransferInstruction(amount,
-			senderSPLTokenAccount,
-			recipientSPLTokenAccount,
-			sender.PublicKey(),
-			signaturers).ValidateAndBuild()
-		if err != nil {
-			continue
-		}
-
-		instructions = append(instructions, transfer)
 		recent, err := GetLatestBlockhash(url)
 		if err != nil {
 			continue
@@ -533,7 +538,6 @@ func TransferToken(urls []string, wsUrl string, amount uint64, senderSPLTokenAcc
 		if err != nil {
 			continue
 		}
-
 		signature, err := confirm.SendAndConfirmTransaction(context.Background(), rpcClient, wsClient, trx)
 		if err != nil {
 			continue
