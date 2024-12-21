@@ -234,7 +234,7 @@ query MyQuery {
 	return nil, fmt.Errorf("cann't pool info")
 }
 
-func BuildTransacion(urls []string, signers []solana.PrivateKey, instrs ...solana.Instruction) (*solana.Transaction, error) {
+func BuildTransacion(urls []string, signers []solana.PrivateKey, instrs []solana.Instruction) (*solana.Transaction, error) {
 	var recent *LastestBlockHashResult
 	var err error
 	for _, url := range urls {
@@ -276,10 +276,10 @@ func BuildTransacion(urls []string, signers []solana.PrivateKey, instrs ...solan
 func ExecuteInstructions(
 	urls []string,
 	signers []solana.PrivateKey,
-	instrs ...solana.Instruction,
+	instrs []solana.Instruction,
 ) (sig string, err error) {
 	var tx *solana.Transaction
-	tx, err = BuildTransacion(urls, signers, instrs...)
+	tx, err = BuildTransacion(urls, signers, instrs)
 	if err != nil {
 		return "", nil
 	}
