@@ -264,7 +264,6 @@ func BuildTransacion(url string, signers []solana.PrivateKey, instrs ...solana.I
 }
 
 func ExecuteInstructions(
-	ctx context.Context,
 	url string,
 	signers []solana.PrivateKey,
 	instrs ...solana.Instruction,
@@ -275,7 +274,7 @@ func ExecuteInstructions(
 	}
 	clientRPC := rpc.New(url)
 	sig, err := clientRPC.SendTransactionWithOpts(
-		ctx,
+		context.Background(),
 		tx,
 		rpc.TransactionOpts{
 			SkipPreflight:       false,
@@ -289,7 +288,6 @@ func ExecuteInstructions(
 }
 
 func ExecuteInstructionsAndWaitConfirm(
-	ctx context.Context,
 	url string,
 	RPCWs string,
 	signers []solana.PrivateKey,
@@ -299,6 +297,7 @@ func ExecuteInstructionsAndWaitConfirm(
 	if err != nil {
 		return "", err
 	}
+	ctx := context.Background()
 	clientWS, err := ws.Connect(ctx, RPCWs)
 	if err != nil {
 		return "", err
@@ -627,4 +626,20 @@ func ProcessTransactionWithAddressLookups(tx *solana.Transaction, urls []string)
 		return err
 	}
 	return nil
+}
+
+func GetRentCost(urls []string) (rent uint64, err error) {
+	for _, url := range urls {
+		clientRPC := rpc.New(url)
+		rent, err = clientRPC.GetMinimumBalanceForRentExemption(
+			context.Background(),
+			TOKEN_ACCOUNT_SIZE,
+			rpc.CommitmentConfirmed,
+		)
+		if err != nil {
+			util.Logger().Info(fmt.Sprintf("GetRentCost, err:%v", err))
+			continue
+		}
+	}
+	return
 }
