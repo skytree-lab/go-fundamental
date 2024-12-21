@@ -2,6 +2,10 @@ package solana
 
 import "github.com/gagliardetto/solana-go"
 
+const (
+	TOKEN_ACCOUNT_SIZE uint64 = 165
+)
+
 var (
 	RaydiumLiquidityPoolv4ProgramID = solana.MustPublicKeyFromBase58("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8")
 	RaydiumCpmmPoolProgramID        = solana.MustPublicKeyFromBase58("CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C")
