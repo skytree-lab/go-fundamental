@@ -47,6 +47,9 @@ func BuildJitoTransactionAndSend(signers []solana.PrivateKey, instructions []sol
 		if err != nil {
 			continue
 		}
+		if latestBlockhash != nil {
+			break
+		}
 	}
 	if latestBlockhash == nil {
 		return
