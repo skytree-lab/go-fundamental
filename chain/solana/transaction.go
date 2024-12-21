@@ -234,9 +234,19 @@ query MyQuery {
 	return nil, fmt.Errorf("cann't pool info")
 }
 
-func BuildTransacion(url string, signers []solana.PrivateKey, instrs ...solana.Instruction) (*solana.Transaction, error) {
-	recent, err := GetLatestBlockhash(url)
-	if err != nil {
+func BuildTransacion(urls []string, signers []solana.PrivateKey, instrs ...solana.Instruction) (*solana.Transaction, error) {
+	var recent *LastestBlockHashResult
+	var err error
+	for _, url := range urls {
+		recent, err = GetLatestBlockhash(url)
+		if err != nil {
+			continue
+		}
+		if recent != nil {
+			break
+		}
+	}
+	if recent == nil {
 		return nil, err
 	}
 	tx, err := solana.NewTransaction(
@@ -264,55 +274,36 @@ func BuildTransacion(url string, signers []solana.PrivateKey, instrs ...solana.I
 }
 
 func ExecuteInstructions(
-	url string,
+	urls []string,
 	signers []solana.PrivateKey,
 	instrs ...solana.Instruction,
-) (string, error) {
-	tx, err := BuildTransacion(url, signers, instrs...)
+) (sig string, err error) {
+	var tx *solana.Transaction
+	tx, err = BuildTransacion(urls, signers, instrs...)
 	if err != nil {
 		return "", nil
 	}
-	clientRPC := rpc.New(url)
-	sig, err := clientRPC.SendTransactionWithOpts(
-		context.Background(),
-		tx,
-		rpc.TransactionOpts{
-			SkipPreflight:       false,
-			PreflightCommitment: rpc.CommitmentFinalized,
-		},
-	)
-	if err != nil {
-		return "", nil
-	}
-	return sig.String(), nil
-}
 
-func ExecuteInstructionsAndWaitConfirm(
-	url string,
-	RPCWs string,
-	signers []solana.PrivateKey,
-	instrs ...solana.Instruction,
-) (string, error) {
-	tx, err := BuildTransacion(url, signers, instrs...)
-	if err != nil {
-		return "", err
+	var signature solana.Signature
+	for _, url := range urls {
+		clientRPC := rpc.New(url)
+		signature, err = clientRPC.SendTransactionWithOpts(
+			context.Background(),
+			tx,
+			rpc.TransactionOpts{
+				SkipPreflight:       false,
+				PreflightCommitment: rpc.CommitmentFinalized,
+			},
+		)
+		if err != nil {
+			continue
+		}
+		sig = signature.String()
+		if sig != "" {
+			return
+		}
 	}
-	ctx := context.Background()
-	clientWS, err := ws.Connect(ctx, RPCWs)
-	if err != nil {
-		return "", err
-	}
-	clientRPC := rpc.New(url)
-	sig, err := confirm.SendAndConfirmTransaction(
-		ctx,
-		clientRPC,
-		clientWS,
-		tx,
-	)
-	if err != nil {
-		return "", nil
-	}
-	return sig.String(), nil
+	return
 }
 
 func TransferSOL(urls []string, wsUrl string, fromKey string, to string, amount uint64) (sig string, err error) {
