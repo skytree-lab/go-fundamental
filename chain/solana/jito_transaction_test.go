@@ -9,9 +9,12 @@ import (
 )
 
 func Test_TransferJitoTransaction(t *testing.T) {
-	urls := []string{"https://api.mainnet-beta.solana.com"}
+	urls := []string{
+		"https://api.mainnet-beta.solana.com",
+	}
+
 	jitourls := []string{
-		"https://ny.mainnet.block-engine.jito.wtf/api/v1/transactions",
+		"https://mainnet.block-engine.jito.wtf/api/v1",
 	}
 	accTo := solana.MustPublicKeyFromBase58("6huu25nWzFtBWPMQmWRzKLD4Wtfq11SSjZTU6oitLqdz")
 	accFrom := solana.MustPrivateKeyFromBase58("")
@@ -20,9 +23,9 @@ func Test_TransferJitoTransaction(t *testing.T) {
 	signers = append(signers, accFrom)
 
 	var instuctions []solana.Instruction
-	instuctions = append(instuctions, system.NewTransferInstruction(5000000, accFrom.PublicKey(), accTo).Build())
+	instuctions = append(instuctions, system.NewTransferInstruction(1000, accFrom.PublicKey(), accTo).Build())
 
-	sig, err := SendJitoTransaction(urls, jitourls, instuctions, uint64(1000), uint64(1000), signers)
+	sig, err := SendJitoTransaction(urls, jitourls, instuctions, uint64(10000), signers)
 	fmt.Println(err)
 	fmt.Println(sig)
 }
