@@ -34,7 +34,7 @@ func Test_SwapInUni(t *testing.T) {
 	chainid := uint64(11155111)
 	factory := "0x0227628f3F023bb0B980b67D528571c95c6DaC1c"
 	router := "0x65669fE35312947050C450Bd5d36e6361F85eC12"
-	key := "16bd0714f3c50f3f24b6db7053e9876604a4ebe590b2aaec63cf8bd16d604e62"
+	key := ""
 	slippage := 0.005
 	// amount := util.ConvertFloat64ToTokenAmount(0.1, 18)
 	amount := util.ConvertFloat64ToTokenAmount(0.002263498835798428, 18)
