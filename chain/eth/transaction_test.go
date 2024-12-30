@@ -23,10 +23,34 @@ func Test_Approve(t *testing.T) {
 	urls := []string{"http://127.0.0.1:8545/"}
 	chainid := uint64(31337)
 	token := "0x6B175474E89094C44Da98b954EedeAC495271d0F"
-	ownerKey := "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+	ownerKey := ""
 	spender := "0x50cf1849e32e6a17bbff6b1aa8b1f7b479ad6c12"
 	spend := util.ConvertFloat64ToTokenAmount(1000, 18)
 	hash, succeed, err := Approve(urls, chainid, token, ownerKey, spender, spend)
+	fmt.Println(err)
+	fmt.Println(succeed)
+	fmt.Println(hash)
+}
+
+func Test_Weth9Deposit(t *testing.T) {
+	urls := []string{"https://ethereum-sepolia.publicnode.com"}
+	chainid := uint64(11155111)
+	weth9address := "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14"
+	key := ""
+	amount := util.ConvertFloat64ToTokenAmount(0.1, 18)
+	hash, succeed, err := Weth9Deposit(urls, chainid, weth9address, key, amount)
+	fmt.Println(err)
+	fmt.Println(succeed)
+	fmt.Println(hash)
+}
+
+func Test_Weth9Withdraw(t *testing.T) {
+	urls := []string{"https://ethereum-sepolia.publicnode.com"}
+	chainid := uint64(11155111)
+	weth9address := "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14"
+	key := ""
+	amount := util.ConvertFloat64ToTokenAmount(0.1, 18)
+	hash, succeed, err := Weth9Withdraw(urls, chainid, weth9address, key, amount)
 	fmt.Println(err)
 	fmt.Println(succeed)
 	fmt.Println(hash)
