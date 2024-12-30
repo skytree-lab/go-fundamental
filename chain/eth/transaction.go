@@ -115,46 +115,37 @@ func Approve(urls []string, chainid uint64, token string, ownerkey string, spend
 	tokenAddr := common.HexToAddress(token)
 	privateKey, err := crypto.HexToECDSA(ownerkey)
 	if err != nil {
-		errMsg := fmt.Sprintf("Approve err, reason=[%s]", err)
-		util.Logger().Error(errMsg)
 		return
 	}
 	owner, err := util.PrivateToAddress(ownerkey)
 	if err != nil {
-		util.Logger().Error(fmt.Sprintf("Approve Dial err is: %+v", err))
 		return
 	}
 
 	for _, url := range urls {
 		client, err = ethclient.Dial(url)
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("Approve Dial err is: %+v", err))
 			continue
 		}
-
-		opts, err = util.CreateTransactionOpts(client, privateKey, chainid, common.HexToAddress(owner), nil)
-		if err != nil {
-			util.Logger().Error(fmt.Sprintf("Approve CreateTransactionOpts err is: %+v", err))
-			continue
-		}
-
 		erc20, err = contract.NewUsdtTransactor(tokenAddr, client)
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("Approve NewUsdtTransactor err is: %+v", err))
 			continue
 		}
-
+		opts, err = util.CreateTransactionOpts(client, privateKey, chainid, common.HexToAddress(owner), nil)
+		if err != nil {
+			continue
+		}
 		tx, err = erc20.Approve(opts, common.HexToAddress(spender), spend)
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("Approve Approve err is: %+v", err))
+			continue
+		}
+		if tx == nil {
 			continue
 		}
 		_, succeed, err = util.TxWaitToSync(opts.Context, client, tx)
 		if err != nil {
-			util.Logger().Error(fmt.Sprintf("Approve Approve err is: %+v", err))
 			continue
 		}
-
 		if succeed {
 			hash = tx.Hash().String()
 			return
@@ -309,30 +300,5 @@ func FetchErc20TokenMeta(urls []string, token string) (decimal int, symbol strin
 		}
 		return
 	}
-	return
-}
-
-func FetchPoolPrice(urls []string, base string, baseDecimal int, quote string, quoteDecimal int, pool string) (price float64, err error) {
-	var baseAmount *big.Int
-	var quoteAmount *big.Int
-	baseAmount, err = GetTokenBalance(urls, base, pool)
-	if err != nil {
-		util.Logger().Error(fmt.Sprintf("FetchPoolPrice GetTokenBalance err: %+v", err))
-		return
-	}
-
-	quoteAmount, err = GetTokenBalance(urls, quote, pool)
-	if err != nil {
-		util.Logger().Error(fmt.Sprintf("FetchPoolPrice GetTokenBalance err: %+v", err))
-		return
-	}
-
-	if baseAmount.Uint64() == 0 || quoteAmount.Uint64() == 0 {
-		return
-	}
-
-	baseVal := util.ConvertTokenAmountToFloat64(baseAmount.String(), int32(baseDecimal))
-	quoteVal := util.ConvertTokenAmountToFloat64(quoteAmount.String(), int32(quoteDecimal))
-	price = quoteVal / baseVal
 	return
 }

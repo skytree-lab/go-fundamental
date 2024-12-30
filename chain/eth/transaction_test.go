@@ -31,3 +31,27 @@ func Test_Approve(t *testing.T) {
 	fmt.Println(succeed)
 	fmt.Println(hash)
 }
+
+func Test_Weth9Deposit(t *testing.T) {
+	urls := []string{"https://ethereum-sepolia.publicnode.com"}
+	chainid := uint64(11155111)
+	weth9address := "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14"
+	key := "16bd0714f3c50f3f24b6db7053e9876604a4ebe590b2aaec63cf8bd16d604e62"
+	amount := util.ConvertFloat64ToTokenAmount(0.1, 18)
+	hash, succeed, err := Weth9Deposit(urls, chainid, weth9address, key, amount)
+	fmt.Println(err)
+	fmt.Println(succeed)
+	fmt.Println(hash)
+}
+
+func Test_Weth9Withdraw(t *testing.T) {
+	urls := []string{"https://ethereum-sepolia.publicnode.com"}
+	chainid := uint64(11155111)
+	weth9address := "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14"
+	key := "16bd0714f3c50f3f24b6db7053e9876604a4ebe590b2aaec63cf8bd16d604e62"
+	amount := util.ConvertFloat64ToTokenAmount(0.1, 18)
+	hash, succeed, err := Weth9Withdraw(urls, chainid, weth9address, key, amount)
+	fmt.Println(err)
+	fmt.Println(succeed)
+	fmt.Println(hash)
+}
