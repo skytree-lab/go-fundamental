@@ -88,7 +88,7 @@ func SwapInUni(urls []string, chainid uint64, uinifactory string, unirouter stri
 	return
 }
 
-func GetPoolAddress(urls []string, uinifactory string, token0, token1 common.Address, fee *big.Int) (poolAddr common.Address, valid bool, err error) {
+func GetPoolAddress(urls []string, uinifactory string, token0, token1 common.Address) (poolAddr common.Address, valid bool, err error) {
 	var client *ethclient.Client
 	var f *contract.Unifactory
 	for _, url := range urls {
@@ -100,7 +100,7 @@ func GetPoolAddress(urls []string, uinifactory string, token0, token1 common.Add
 		if err != nil {
 			continue
 		}
-		poolAddr, err = f.GetPool(nil, token0, token1, fee)
+		poolAddr, err = f.GetPool(nil, token0, token1, big.NewInt(int64(constants.FeeMedium)))
 		if err != nil {
 			continue
 		}
