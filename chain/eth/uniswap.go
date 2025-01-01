@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"time"
 
-	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
 	"github.com/daoleno/uniswapv3-sdk/constants"
 	"github.com/daoleno/uniswapv3-sdk/examples/helper"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -18,38 +17,47 @@ import (
 	"github.com/skytree-lab/go-fundamental/util"
 )
 
-func SwapInUni(urls []string, chainid uint64, uinifactory string, unirouter string, key string, swapValue *big.Int, token0 *coreEntities.Token, token1 *coreEntities.Token, slippage float64) (hash string, succeed bool, err error) {
+func handleApprove(urls []string, chainid uint64, token0 string, key string, owner string, router string, swapValue *big.Int) (succeed bool, err error) {
+	allowance, _ := GetAllowance(urls, token0, owner, router)
+	if allowance != nil && allowance.Cmp(swapValue) > 0 {
+		succeed = true
+		return
+	}
+	approvehash, approvesucceed, err := Approve(urls, chainid, token0, key, router, swapValue)
+	if err != nil || !approvesucceed {
+		return
+	}
+	status := checkTransactionStatus(urls, approvehash)
+	if status == 0 {
+		return
+	}
+	succeed = true
+	return
+}
+
+func SwapInUni(urls []string, chainid uint64, uinifactory string, unirouter string, key string, swapValue *big.Int, token0 string, token1 string) (hash string, succeed bool, err error) {
 	wallet := helper.InitWallet(key)
 	if wallet == nil {
 		err = errors.New("SwapInUni helper.InitWallet err")
 		return
 	}
-
-	approvehash, approvesucceed, err := Approve(urls, chainid, token0.Address.Hex(), key, unirouter, swapValue)
+	approvesucceed, err := handleApprove(urls, chainid, token0, key, wallet.PubkeyStr(), unirouter, swapValue)
 	if err != nil {
 		return
 	}
 	if !approvesucceed {
 		return
 	}
-
-	status := checkTransactionStatus(urls, approvehash)
-	if status == 0 {
-		return
-	}
-
 	d := time.Now().Add(time.Minute * time.Duration(5)).Unix()
 	deadline := big.NewInt(d)
-	amountOut := big.NewInt(0)
-
 	exactInputSingleParams := contract.ISwapRouterExactInputSingleParams{
-		TokenIn:           common.HexToAddress(token0.Address.String()),
-		TokenOut:          common.HexToAddress(token1.Address.String()),
+		TokenIn:           common.HexToAddress(token0),
+		TokenOut:          common.HexToAddress(token1),
 		Fee:               big.NewInt(int64(constants.FeeMedium)),
 		Recipient:         wallet.PublicKey,
 		Deadline:          deadline,
 		AmountIn:          swapValue,
-		AmountOutMinimum:  amountOut,
+		AmountOutMinimum:  big.NewInt(0),
 		SqrtPriceLimitX96: big.NewInt(0),
 	}
 
