@@ -17,7 +17,7 @@ import (
 	"github.com/skytree-lab/go-fundamental/util"
 )
 
-func handleApprove(urls []string, chainid uint64, token0 string, key string, owner string, router string, swapValue *big.Int) (succeed bool, err error) {
+func HandleApprove(urls []string, chainid uint64, token0 string, key string, owner string, router string, swapValue *big.Int) (succeed bool, err error) {
 	allowance, _ := GetAllowance(urls, token0, owner, router)
 	if allowance != nil && allowance.Cmp(swapValue) > 0 {
 		succeed = true
@@ -39,13 +39,6 @@ func SwapInUni(urls []string, chainid uint64, uinifactory string, unirouter stri
 	wallet := helper.InitWallet(key)
 	if wallet == nil {
 		err = errors.New("SwapInUni helper.InitWallet err")
-		return
-	}
-	approvesucceed, err := handleApprove(urls, chainid, token0, key, wallet.PubkeyStr(), unirouter, swapValue)
-	if err != nil {
-		return
-	}
-	if !approvesucceed {
 		return
 	}
 	d := time.Now().Add(time.Minute * time.Duration(5)).Unix()
