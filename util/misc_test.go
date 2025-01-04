@@ -2,6 +2,8 @@ package util
 
 import (
 	"fmt"
+	"math"
+	"math/big"
 	"testing"
 )
 
@@ -29,4 +31,12 @@ func Test_GetTokenPriceUSDT(t *testing.T) {
 	price, err := GetTokenPriceUSDT(urlbase, base, quote)
 	fmt.Println(err)
 	fmt.Println(price)
+}
+
+func Test_ConvertBigIntTokenAmountToFloat64(t *testing.T) {
+	a := 10000 * math.Pow10(18)
+	fmt.Println(a)
+	amount := big.NewInt(int64(1 * math.Pow10(18)))
+	amt := ConvertBigIntTokenAmountToFloat64(amount, 18)
+	fmt.Println(amt)
 }
