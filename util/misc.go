@@ -75,7 +75,7 @@ func ConvertTokenAmountToFloat64(amt string, tokenDecimal int32) float64 {
 }
 
 func ConvertBigIntTokenAmountToFloat64(b *big.Int, tokenDecimal int32) float64 {
-	amount := decimal.NewFromBigInt(b, tokenDecimal)
+	amount := decimal.NewFromBigInt(b, 0)
 	amount_converted := amount.Div(decimal.New(1, tokenDecimal))
 	amountFloat, _ := amount_converted.Float64()
 	return amountFloat
