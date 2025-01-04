@@ -74,6 +74,13 @@ func ConvertTokenAmountToFloat64(amt string, tokenDecimal int32) float64 {
 	return amountFloat
 }
 
+func ConvertBigIntTokenAmountToFloat64(b *big.Int, tokenDecimal int32) float64 {
+	amount := decimal.NewFromBigInt(b, tokenDecimal)
+	amount_converted := amount.Div(decimal.New(1, tokenDecimal))
+	amountFloat, _ := amount_converted.Float64()
+	return amountFloat
+}
+
 func GetBigIntFromString(v0 string) (n0 *big.Int, err error) {
 	n0 = new(big.Int)
 	n0, ok := n0.SetString(v0, 10)
