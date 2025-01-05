@@ -17,7 +17,11 @@ import (
 	"github.com/skytree-lab/go-fundamental/util"
 )
 
-func HandleApprove(urls []string, chainid uint64, token0 string, key string, owner string, router string, swapValue *big.Int) (succeed bool, err error) {
+func HandleApprove(urls []string, chainid uint64, token0 string, key string, router string, swapValue *big.Int) (succeed bool, err error) {
+	owner, err := util.PrivateToAddress(key)
+	if err != nil {
+		return
+	}
 	allowance, _ := GetAllowance(urls, token0, owner, router)
 	if allowance != nil && allowance.Cmp(swapValue) > 0 {
 		succeed = true
