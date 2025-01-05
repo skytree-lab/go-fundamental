@@ -1,0 +1,3 @@
+package eth
+
+const uniPoolSwappedTopic = "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67"
