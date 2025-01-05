@@ -43,3 +43,13 @@ func Test_SwapInUni(t *testing.T) {
 	fmt.Println(succeed)
 	fmt.Println(hash)
 }
+
+func Test_ParseUniSwapTransaction(t *testing.T) {
+	urls := []string{"https://eth-sepolia.g.alchemy.com/v2/v-8DDF-sKRNirIxSFn9rdszEKw_vu0i5"}
+	tx := "0xcfa14d0e43afa00302cfa21a14099b9ee8f1d6c13e1f8af44141e7338fbdd39d"
+	status, amount0, amount1, err := ParseUniTransaction(urls, tx)
+	fmt.Println(status)
+	fmt.Println(amount0.Text(10))
+	fmt.Println(amount1.Text(10))
+	fmt.Println(err)
+}

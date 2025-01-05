@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/daoleno/uniswapv3-sdk/constants"
 	"github.com/daoleno/uniswapv3-sdk/examples/helper"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -158,6 +160,54 @@ func checkTransactionStatus(urls []string, tx string) (status uint64) {
 			continue
 		}
 		status = receipt.Status
+		return
+	}
+	return
+}
+
+func ParseUniTransaction(urls []string, tx string) (status uint64, amount0 *big.Int, amount1 *big.Int, err error) {
+	var receipt *types.Receipt
+	var client *ethclient.Client
+	for _, url := range urls {
+		client, err = ethclient.Dial(url)
+		if err != nil {
+			continue
+		}
+		receipt, err = client.TransactionReceipt(context.Background(), common.HexToHash(tx))
+		if receipt == nil {
+			continue
+		}
+		amount0, amount1, err = parseUniSwapLog(receipt.Logs)
+		if err != nil {
+			continue
+		}
+		status = receipt.Status
+		return
+	}
+	return
+}
+
+func parseUniSwapLog(logs []*types.Log) (amount0 *big.Int, amount1 *big.Int, err error) {
+	var contractAbi abi.ABI
+	for _, log := range logs {
+		if len(log.Topics) == 0 || log.Topics[0].Hex() != uniPoolSwappedTopic {
+			continue
+		}
+
+		contractAbi, err = abi.JSON(strings.NewReader(string(contract.UnipoolABI)))
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("Not found abi json, err:%+v", err))
+			return
+		}
+
+		uniswapEvent := &contract.UnipoolSwap{}
+		err = contractAbi.UnpackIntoInterface(uniswapEvent, "Swap", log.Data)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("parseUniSwapLog failed to UnpackIntoInterface: %+v", err))
+			return
+		}
+		amount0 = uniswapEvent.Amount0
+		amount1 = uniswapEvent.Amount1
 		return
 	}
 	return
