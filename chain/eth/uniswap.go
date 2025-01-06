@@ -25,7 +25,7 @@ func HandleApprove(urls []string, chainid uint64, token0 string, key string, rou
 		return
 	}
 	allowance, _ := GetAllowance(urls, token0, owner, router)
-	if allowance != nil && allowance.Cmp(swapValue) > 0 {
+	if allowance != nil && allowance.Cmp(swapValue) >= 0 {
 		succeed = true
 		return
 	}
