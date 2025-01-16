@@ -94,6 +94,57 @@ func SwapInUni(urls []string, chainid uint64, uinifactory string, unirouter stri
 	return
 }
 
+func SwapInUniBase(urls []string, chainid uint64, uinifactory string, unirouter string, key string, swapValue *big.Int, token0 string, token1 string) (hash string, succeed bool, err error) {
+	wallet := helper.InitWallet(key)
+	if wallet == nil {
+		err = errors.New("SwapInUni helper.InitWallet err")
+		return
+	}
+
+	extractInputSingleParams := contract.IV3SwapRouterExactInputSingleParams{
+		TokenIn:           common.HexToAddress(token0),
+		TokenOut:          common.HexToAddress(token1),
+		Fee:               big.NewInt(int64(constants.FeeMedium)),
+		Recipient:         wallet.PublicKey,
+		AmountIn:          swapValue,
+		AmountOutMinimum:  big.NewInt(0),
+		SqrtPriceLimitX96: big.NewInt(0),
+	}
+
+	var client *ethclient.Client
+	var router *contract.UnibaserouterTransactor
+	var tx *types.Transaction
+	var opts *bind.TransactOpts
+	for _, url := range urls {
+		client, err = ethclient.Dial(url)
+		if err != nil {
+			continue
+		}
+		opts, err = util.CreateTransactionOpts(client, wallet.PrivateKey, chainid, wallet.PublicKey, nil)
+		if err != nil {
+			continue
+		}
+		router, err = contract.NewUnibaserouterTransactor(common.HexToAddress(unirouter), client)
+		if err != nil {
+			continue
+		}
+		tx, err = router.ExactInputSingle(opts, extractInputSingleParams)
+		if err != nil {
+			continue
+		}
+		_, succeed, err = util.TxWaitToSync(opts.Context, client, tx)
+		if err != nil {
+			util.Logger().Error(fmt.Sprintf("SwapInUni transaction err: %+v", err))
+			continue
+		}
+		if succeed {
+			hash = tx.Hash().String()
+			return
+		}
+	}
+	return
+}
+
 func GetPoolAddress(urls []string, uinifactory string, token0, token1 common.Address) (poolAddr common.Address, valid bool, err error) {
 	var client *ethclient.Client
 	var f *contract.Unifactory
