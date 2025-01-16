@@ -61,7 +61,7 @@ func Test_Weth9Withdraw(t *testing.T) {
 	urls := []string{"HTTP://127.0.0.1:8545"}
 	chainid := uint64(31337)
 	weth9address := "0x4200000000000000000000000000000000000006"
-	key := "9f1274f352dfca45a91ad0f1be14d94a6c9c8cd6ee04738c2f112cba280a0ceb"
+	key := ""
 
 	amount := new(big.Int)
 	amount.SetString("100000000000000000", 10)
