@@ -40,3 +40,9 @@ func Test_ConvertBigIntTokenAmountToFloat64(t *testing.T) {
 	amt := ConvertBigIntTokenAmountToFloat64(amount, 18)
 	fmt.Println(amt)
 }
+
+func Test_ConvertTokenAmountToFloat64(t *testing.T) {
+	f := "0.118804640505839137"
+	amt := ConvertFloatStringTokenAmountToBigInt(f, 18)
+	fmt.Println(amt.Text(10))
+}
